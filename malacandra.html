@@ -84,12 +84,12 @@
   .chask div { display: flex; flex-wrap: wrap; gap: 8px; }
 
   /* Primera visita */
-  #first { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; padding: 16px; background: rgba(28, 18, 34, .6); }
+  #first { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(28, 18, 34, .6); }
   .firstcard { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 10px; padding: 20px; background: var(--ink); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 12px 40px rgba(0, 0, 0, .45); }
   .firstcard h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 1.6rem; line-height: 1.15; }
   .firstcard p { margin: 0; color: var(--muted); }
   .firstcard .row { display: flex; gap: 8px; margin-top: 4px; }
-  .firstcard select { flex: 1; }
+  .firstcard select { flex: 1; min-width: 0; }
 
   /* Ransom está aquí */
   .here { position: absolute; left: 0; top: 0; pointer-events: none; white-space: nowrap; font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--gold);
@@ -163,98 +163,229 @@
   var stage = $('#stage'), canvas = $('#c'), labelsEl = $('#labels');
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* ---------- Contenido (solo lo que Ransom sabe en el cap. 15) ---------- */
+  /* ---------- Contenido por capítulo ----------
+     Cada ítem es { id, from, v: [versiones] }. Existe para el lector desde "from".
+     Se muestra la última versión con from <= CH. Lo que una versión omite se hereda de la anterior. */
+  var TOTAL = 22;
+  var WHY_GRAV = ['La idea base', 'Con menos gravedad, un cuerpo puede ser mucho más alto y delgado sin romperse. Por eso todos aquí parecen estirados.'];
   var INTRO = {
-    world: {
-      cap: 'Más allá del planeta silencioso', name: 'Un mundo de dos pisos', tag: 'Malacandra es el nombre que sus habitantes dan a Marte',
-      text: 'Arriba está el harandra: roca fría, casi sin aire. Abajo, los handramits: cañones profundos donde se juntan el aire, el agua tibia y toda la vida. Ransom aterriza en uno de ellos.',
-      why: ['La idea base', 'El planeta tiene poco aire, y el aire pesa. Se acumula en lo más hondo, igual que el agua. Por eso se vive abajo y arriba el cielo es casi negro.']
-    },
-    gal: {
-      cap: 'Los que habitan Malacandra', name: 'Hnau', tag: 'Toda criatura con razón',
-      text: 'Hay tres especies hnau: hrossa, séroni y pfifltriggi. Ninguna manda sobre las otras, y cada una hace lo que mejor sabe. Las figuras están a escala entre sí. La regla de la izquierda marca metros.',
-      why: ['La idea base', 'Con menos gravedad, un cuerpo puede ser mucho más alto y delgado sin romperse. Por eso todos aquí parecen estirados.']
-    }
+    world: { v: [
+      { from: 1, cap: 'Capítulos 1 a 6', name: 'Todavía no has llegado', tag: '',
+        text: 'En este capítulo Ransom aún no pisa Malacandra. Esta parte del atlas llegará pronto.' },
+      { from: 7, cap: 'Más allá del planeta silencioso', name: 'Un mundo desconocido', tag: 'Ransom no sabe dónde está',
+        text: 'Ransom no sabe en qué mundo ha caído. Ve agua azul, suelo rosado, un bosque púrpura y montañas como agujas. Todo parece demasiado alto y delgado.',
+        why: ['La idea base', 'Aquí las cosas pesan menos que en la Tierra. Por eso pueden estirarse hacia arriba sin caerse.'] },
+      { from: 11, name: 'Malacandra', tag: 'Así lo llaman sus habitantes',
+        text: 'Los hrossa llaman Malacandra a su mundo. De ellos Ransom aprende que hay una tierra baja, el handramit, y una tierra alta, el harandra. Aún no sabe qué planeta es.' },
+      { from: 14, name: 'Un mundo de dos pisos', tag: 'Malacandra es el nombre que sus habitantes dan a Marte',
+        text: 'Arriba está el harandra: roca fría, casi sin aire. Abajo, los handramits: cañones profundos donde se juntan el aire, el agua tibia y toda la vida. Ransom aterriza en uno de ellos.',
+        why: ['La idea base', 'El planeta tiene poco aire, y el aire pesa. Se acumula en lo más hondo, igual que el agua. Por eso se vive abajo y arriba el cielo es casi negro.'] }
+    ] },
+    gal: { v: [
+      { from: 1, cap: 'Quién aparece', name: 'Los viajeros', tag: 'Tres hombres de la Tierra',
+        text: 'Tres hombres de la Tierra: Ransom y los dos que se lo llevan. Las figuras están a escala entre sí. La regla de la izquierda marca metros.' },
+      { from: 7, name: 'Criaturas de Malacandra', tag: 'Seres que Ransom no entiende',
+        text: 'Ransom ve seres que no entiende y les teme. Aún no sabe cuáles piensan y cuáles son bestias. Las figuras están a escala. La regla de la izquierda marca metros.',
+        why: WHY_GRAV },
+      { from: 11, cap: 'Los que habitan Malacandra', name: 'Hnau', tag: 'Toda criatura con razón',
+        text: 'Hay tres especies hnau: hrossa, séroni y pfifltriggi. Ninguna manda sobre las otras, y cada una hace lo que mejor sabe. Las figuras están a escala entre sí. La regla de la izquierda marca metros.' }
+    ] }
   };
+  var NEUTRAL = { cap: 'Atlas de Malacandra', name: 'Elige tu capítulo', tag: '',
+    text: 'Dime en qué capítulo vas. El atlas mostrará solo lo que Ransom ya sabe en ese punto.' };
 
   var PLACES = [
-    { id: 'handramit', name: 'Handramit', tag: 'La tierra baja', cap: 'Capítulos 7 a 14',
-      text: 'Un cañón enorme cortado en la superficie. Suelo cubierto de una hierba rosada y blanda, agua azul y tibia, bosques púrpura. Subiendo por su pared, Ransom entiende que los handramits son los famosos canales que se ven desde la Tierra.',
-      facts: [['Aire', 'Denso y templado'], ['Agua', 'Azul, tibia, con olas altas y estrechas'], ['Viven aquí', 'Los hrossa']] },
-    { id: 'harandra', name: 'Harandra', tag: 'La tierra alta', cap: 'Capítulos 14 y 15',
-      text: 'La verdadera superficie del planeta. Roca desnuda, frío, y un aire tan delgado que un hombre no puede respirarlo. Augray le da oxígeno a Ransom para cruzarlo.',
-      why: ['Mira el cielo', 'Sube la cámara. Cuanto más alto, menos aire hay para dispersar la luz, así que el cielo se oscurece y aparecen estrellas en pleno día.'] },
-    { id: 'nave', name: 'La nave y la cabaña', tag: 'Donde empieza todo', cap: 'Capítulos 3 a 7',
-      text: 'Una esfera de metal. Weston y Devine aterrizan junto al agua, donde ya tenían una cabaña de un viaje anterior. Aquí Ransom ve a los sorns acercarse por primera vez, se suelta y huye.',
-      facts: [['Forma', 'Esfera, se vive sobre la cara interior'], ['Tripulación', 'Weston, Devine y Ransom a la fuerza']] },
-    { id: 'bosque', name: 'Bosque púrpura', tag: 'Tallos como torres', cap: 'Capítulos 7 y 8',
-      text: 'Tallos lisos y delgadísimos, del doble de alto que un olmo, con hojas enormes y casi transparentes solo en la copa. Ransom lo cruza solo en sus primeras horas, sin saber qué se puede comer ni beber.' },
-    { id: 'agujas', name: 'Agujas verde pálido', tag: 'Las montañas del borde', cap: 'Capítulos 7 y 8',
-      text: 'Las montañas no forman lomas. Son agujas que parecen a punto de caerse. Lo mismo pasa con las olas, las plantas y los cuerpos: todo es demasiado alto para su ancho.',
-      why: ['Por qué', 'Malacandra es más pequeño que la Tierra y tira de las cosas con menos fuerza. Lo que en la Tierra se derrumbaría, aquí se sostiene.'] },
-    { id: 'rosa', name: 'Masas rosadas', tag: 'Algo sobre la tierra alta', cap: 'Capítulo 7',
-      text: 'Más allá de las agujas, Ransom ve unas formas rosadas gigantescas, como nubes quietas o la copa de una coliflor roja. Todavía no sabe qué son.' },
-    { id: 'aldea', name: 'Aldea de los hrossa', tag: 'A la orilla del agua', cap: 'Capítulos 10 a 12',
-      text: 'Chozas con forma de colmena hechas de hojas rígidas. Los hrossa viven junto al agua: navegan, pescan, cultivan y componen poesía. Aquí Ransom pasa semanas aprendiendo su lengua con Hnohra y hablando con Hyoi.',
-      facts: [['En la escena', 'Hyoi con Ransom, Hnohra, Whin y la cachorra Hrikki, que habla con un eldil']] },
-    { id: 'hnakra', name: 'Aguas del hnakra', tag: 'La caza', cap: 'Capítulo 13',
-      text: 'Cazar al hnakra es el mayor honor de un hross. Ransom va en la barca con Hyoi y Whin y lo consiguen. Justo después, un disparo de Weston mata a Hyoi, y un eldil ordena a Ransom ir a ver a Oyarsa.' },
-    { id: 'rebano', name: 'Bestias amarillas', tag: 'El rebaño de los sorns', cap: 'Capítulo 8',
-      text: 'Animales altísimos, de pelaje amarillo pálido y cuello largo, que comen las copas del bosque. Ransom los encuentra en su huida y luego oye la voz de un sorn que los guía.' },
-    { id: 'torre', name: 'Torre de Augray', tag: 'Una cueva en la pared', cap: 'Capítulos 14 y 15',
-      text: 'El camino sube por la pared del handramit hasta casi la tierra alta. Arriba, a Ransom ya le falta el aire. Augray, un sorn, lo recibe junto al fuego, le da oxígeno y le deja mirar el cielo con su instrumento.',
-      facts: [['Estás aquí', 'Capítulo 15'], ['Camino', 'La línea clara que sube desde la aldea']] },
-    { id: 'thulcandra', name: 'Thulcandra', tag: 'El planeta silencioso', cap: 'Capítulos 11 y 15',
-      text: 'Los hrossa saben que existe un mundo del que nunca llega ninguna voz. Cuando Ransom les cuenta de dónde viene, concluyen que viene de allí. Es el punto azul que aparece cuando el cielo se oscurece.' },
-    { id: 'meldilorn', name: 'Hacia Meldilorn', tag: 'Todavía no has llegado', cap: 'Más adelante', locked: true,
-      text: 'Donde vive Oyarsa, quien gobierna Malacandra. Es el destino de Ransom, al otro lado de la tierra alta. Queda fuera del mapa hasta que avances en el libro.' }
+    { id: 'handramit', from: 7, v: [
+      { from: 7, name: 'El valle', tag: 'Agua tibia entre paredes', cap: 'Capítulo 7',
+        text: 'Un valle largo de suelo rosado y blando. El agua es azul y tibia, con olas altas y estrechas. Ransom huye por él sin rumbo.' },
+      { from: 9, cap: 'Capítulos 7 a 9',
+        text: 'Un valle largo de suelo rosado y blando, con agua azul y tibia. A la orilla, Ransom encuentra a una criatura negra y la oye hablar. Su curiosidad de filólogo vence al miedo. Es Hyoi.' },
+      { from: 11, name: 'Handramit', tag: 'La tierra baja', cap: 'Capítulos 7 a 11',
+        text: 'Los hrossa llaman handramit a la tierra baja donde viven. Es un valle hondo de suelo rosado y blando, con agua azul y tibia y bosques púrpura.',
+        facts: [['Aire', 'Denso y templado'], ['Agua', 'Azul, tibia, con olas altas y estrechas'], ['Viven aquí', 'Los hrossa']] },
+      { from: 14, cap: 'Capítulos 7 a 14',
+        text: 'Un cañón enorme cortado en la superficie. Suelo cubierto de una hierba rosada y blanda, agua azul y tibia, bosques púrpura. Subiendo por su pared, Ransom entiende que los handramits son los famosos canales que se ven desde la Tierra.' }
+    ] },
+    { id: 'harandra', from: 11, v: [
+      { from: 11, name: 'Harandra', tag: 'La tierra alta', cap: 'Solo de oídas', locked: true,
+        text: 'Los hrossa dicen que arriba, más allá de las paredes del valle, está la tierra alta. Ellos no viven allí. Es territorio de los séroni.' },
+      { from: 14, cap: 'Capítulo 14', locked: false,
+        text: 'La verdadera superficie del planeta. Roca desnuda, frío, y un aire tan delgado que un hombre no puede respirarlo.',
+        why: ['Mira el cielo', 'Sube la cámara. Cuanto más alto, menos aire hay para dispersar la luz, así que el cielo se oscurece y aparecen estrellas en pleno día.'] },
+      { from: 15, cap: 'Capítulos 14 y 15',
+        text: 'La verdadera superficie del planeta. Roca desnuda, frío, y un aire tan delgado que un hombre no puede respirarlo. Augray le da oxígeno a Ransom para cruzarlo.' }
+    ] },
+    { id: 'nave', from: 7, v: [
+      { from: 7, name: 'La nave y la cabaña', tag: 'Donde empieza todo', cap: 'Capítulos 3 a 7',
+        text: 'Una esfera de metal. Weston y Devine aterrizan junto al agua, donde ya tenían una cabaña de un viaje anterior. Aquí Ransom ve a los sorns acercarse por primera vez, se suelta y huye.',
+        facts: [['Forma', 'Esfera, se vive sobre la cara interior'], ['Tripulación', 'Weston, Devine y Ransom a la fuerza']] }
+    ] },
+    { id: 'bosque', from: 7, v: [
+      { from: 7, name: 'Bosque púrpura', tag: 'Tallos como torres', cap: 'Capítulos 7 y 8',
+        text: 'Tallos lisos y delgadísimos, del doble de alto que un olmo, con hojas enormes y casi transparentes solo en la copa. Ransom lo cruza solo en sus primeras horas, sin saber qué se puede comer ni beber.' }
+    ] },
+    { id: 'agujas', from: 7, v: [
+      { from: 7, name: 'Agujas verde pálido', tag: 'Las montañas del borde', cap: 'Capítulos 7 y 8',
+        text: 'Las montañas no forman lomas. Son agujas que parecen a punto de caerse. Lo mismo pasa con las olas, las plantas y los cuerpos: todo es demasiado alto para su ancho.',
+        why: ['Por qué', 'Malacandra es más pequeño que la Tierra y tira de las cosas con menos fuerza. Lo que en la Tierra se derrumbaría, aquí se sostiene.'] }
+    ] },
+    { id: 'rosa', from: 7, v: [
+      { from: 7, name: 'Masas rosadas', tag: 'Algo sobre la tierra alta', cap: 'Capítulo 7',
+        text: 'Más allá de las agujas, Ransom ve unas formas rosadas gigantescas, como nubes quietas o la copa de una coliflor roja. Todavía no sabe qué son.' }
+    ] },
+    { id: 'aldea', from: 10, v: [
+      { from: 10, name: 'Aldea de los hrossa', tag: 'A la orilla del agua', cap: 'Capítulo 10',
+        text: 'Hyoi lleva a Ransom en barca durante un largo viaje hasta su aldea. Las chozas tienen forma de colmena y están hechas de hojas rígidas, junto al agua. Los hrossa lo reciben con curiosidad, sin miedo.' },
+      { from: 11, cap: 'Capítulos 10 y 11',
+        text: 'Chozas con forma de colmena hechas de hojas rígidas. Los hrossa viven junto al agua: navegan, pescan, cultivan y componen poesía. Aquí Ransom pasa semanas aprendiendo su lengua con Hnohra y hablando con Hyoi.',
+        facts: [['En la escena', 'Hyoi con Ransom, Hnohra y Whin']] },
+      { from: 12, cap: 'Capítulos 10 a 12',
+        facts: [['En la escena', 'Hyoi con Ransom, Hnohra, Whin y la cachorra Hrikki, que habla con un eldil']] }
+    ] },
+    { id: 'hnakra', from: 13, v: [
+      { from: 13, name: 'Aguas del hnakra', tag: 'La caza', cap: 'Capítulo 13',
+        text: 'Cazar al hnakra es el mayor honor de un hross. Ransom va en la barca con Hyoi y Whin y lo consiguen. Justo después, un disparo de Weston mata a Hyoi, y un eldil ordena a Ransom ir a ver a Oyarsa.' }
+    ] },
+    { id: 'rebano', from: 8, v: [
+      { from: 8, name: 'Bestias amarillas', tag: 'El rebaño de los sorns', cap: 'Capítulo 8',
+        text: 'Animales altísimos, de pelaje amarillo pálido y cuello largo, que comen las copas del bosque. Ransom los encuentra en su huida y luego oye la voz de un sorn que los guía.' }
+    ] },
+    { id: 'torre', from: 14, v: [
+      { from: 14, name: 'Torre de Augray', tag: 'Una cueva en la pared', cap: 'Capítulo 14',
+        text: 'El camino sube por la pared del handramit. Con la altura el aire se vuelve delgado y frío, y a Ransom le cuesta respirar. Aquí entiende que está en Marte. Llega agotado a la cueva de Augray.',
+        facts: [['Camino', 'La línea clara que sube desde la aldea']] },
+      { from: 15, cap: 'Capítulos 14 y 15',
+        text: 'El camino sube por la pared del handramit hasta casi la tierra alta. Arriba, a Ransom ya le falta el aire. Augray, un sorn, lo recibe junto al fuego, le da oxígeno y le deja mirar el cielo con su instrumento.' }
+    ] },
+    { id: 'thulcandra', from: 11, v: [
+      { from: 11, name: 'Thulcandra', tag: 'El planeta silencioso', cap: 'Capítulo 11',
+        text: 'Los hrossa saben que existe un mundo del que nunca llega ninguna voz. Cuando Ransom les cuenta de dónde viene, concluyen que viene de allí. Es el punto azul que aparece cuando el cielo se oscurece.' },
+      { from: 15, tag: 'El planeta silencioso: la Tierra', cap: 'Capítulos 11 y 15',
+        text: 'Un mundo del que nunca llega ninguna voz. Los hrossa concluyen que Ransom viene de allí. Augray se lo muestra con su instrumento y Ransom lo reconoce: es la Tierra. Es el punto azul que aparece cuando el cielo se oscurece.' }
+    ] },
+    { id: 'meldilorn', from: 13, v: [
+      { from: 13, name: 'Hacia Meldilorn', tag: 'Todavía no has llegado', cap: 'Más adelante', locked: true,
+        text: 'Donde vive Oyarsa, quien gobierna Malacandra. Es el destino de Ransom, al otro lado de la tierra alta. Queda fuera del mapa hasta que avances en el libro.' }
+    ] }
   ];
 
+  var HROSS_BODY = 'Piensa en una nutria, una foca y un pingüino estirados hasta la altura de un hombre alto. Pelaje negro, espeso y lustroso. Patas muy cortas con pies palmeados, cola ancha como de castor, brazos fuertes con manos palmeadas. Cabeza redonda con bigotes largos, la frente más alta que la de una foca.';
   var FOLK = [
-    { id: 'hross', name: 'Hrossa', tag: 'Los poetas del agua', cap: 'Desde el capítulo 9',
-      text: 'Piensa en una nutria, una foca y un pingüino estirados hasta la altura de un hombre alto. Pelaje negro, espeso y lustroso. Patas muy cortas con pies palmeados, cola ancha como de castor, brazos fuertes con manos palmeadas. Cabeza redonda con bigotes largos, la frente más alta que la de una foca.',
-      facts: [['Altura', '1,8 a 2,1 m'], ['Viven', 'A la orilla del agua, en el handramit'], ['Hacen', 'Poesía, canto, barcas, pesca y la caza del hnakra'], ['Conoces a', 'Hyoi, tu amigo. Hnohra, el viejo de hocico gris que te enseña la lengua. Whin, compañero de caza. Hrikki, la cachorra.']] },
-    { id: 'sorn', name: 'Séroni', tag: 'Sorns: los pensadores de la altura', cap: 'Vistos en el 7, conocidos en el 15',
-      text: 'Dos o tres veces la altura de un hombre. Piernas larguísimas y finas, pecho abultado que parece pesar demasiado, cara larga y solemne con la nariz y la boca caídas. Un manto pálido que parece de plumas. Manos de siete dedos abiertas en abanico, pura piel sobre hueso. De lejos, Ransom ve un espectro o un ogro. De cerca, Augray resulta sereno.',
-      facts: [['Altura', '4 a 5,5 m'], ['Viven', 'En cuevas, al borde de la tierra alta'], ['Hacen', 'Ciencia, astronomía, pastoreo'], ['Voz', 'Grave, como un cuerno'], ['Conoces a', 'Augray']] },
-    { id: 'pfifl', name: 'Pfifltriggi', tag: 'Los artesanos', cap: 'Solo de oídas', locked: true,
-      text: 'La tercera especie hnau. Según los hrossa, cavan, funden lo que sacan y nadie los iguala haciendo cosas, sobre todo con la sangre del sol, que es como llaman al oro. Todavía no has visto ninguno, así que aquí solo hay una silueta.' },
-    { id: 'eldil', name: 'Eldila', tag: 'Los que casi no se ven', cap: 'Capítulos 11, 13 y 15',
-      text: 'No son hnau como los demás. Los hrossa los ven con facilidad. Ransom apenas nota un temblor de luz y oye una voz. Oyarsa, quien gobierna Malacandra, es el mayor de ellos. Aún no lo has visto.',
-      why: ['Cómo lo explica Augray', 'Lo más rápido que captan nuestros sentidos es la luz. El cuerpo de un eldil es un movimiento tan veloz como ella. Para nosotros es casi nada. Para él, una pared es como una nube.'] },
-    { id: 'hnakra', name: 'Hnakra', tag: 'El cazador del agua', cap: 'Capítulos 12 y 13',
-      text: 'Una bestia, no un hnau. Oscuro, largo y rapidísimo: llega como un torpedo dejando una estela de espuma, con mandíbulas que chasquean como las de un tiburón. Los hrossa lo cazan con lanzas desde sus barcas.',
-      why: ['Lo que dice Hyoi', 'El hnakra es su enemigo y también lo quieren. Sin peligro en los lagos, el bosque no sería tan luminoso ni el agua tan tibia.'] },
-    { id: 'ransom', name: 'Ransom', tag: 'Humano de Thulcandra', cap: 'Desde el capítulo 1',
-      text: 'Elwin Ransom, filólogo de Cambridge. Alto, de hombros algo caídos, entre treinta y cinco y cuarenta años, con la ropa gastada de quien anda de excursión a pie. Lo secuestran para entregarlo a los sorns.',
-      why: ['Por qué importa su oficio', 'Estudia lenguas. Cuando oye hablar a Hyoi, la curiosidad le gana al miedo. Aprender el idioma es lo que le abre este mundo.'] },
-    { id: 'wd', name: 'Weston y Devine', tag: 'Los secuestradores', cap: 'Desde el capítulo 1',
-      text: 'Weston, a la izquierda, es físico: corpulento, de voz fuerte, construyó la nave y cree que la humanidad debe extenderse a otros mundos cueste lo que cueste. Devine fue compañero de colegio de Ransom: delgado, burlón, y solo le interesa el oro.' }
+    { id: 'hross', from: 9, v: [
+      { from: 9, name: 'Hross', tag: 'La criatura que habla', cap: 'Capítulo 9', text: HROSS_BODY,
+        facts: [['Altura', '1,8 a 2,1 m'], ['Conoces a', 'Hyoi']] },
+      { from: 10, name: 'Hrossa', tag: 'Los que viven junto al agua', cap: 'Desde el capítulo 9',
+        facts: [['Altura', '1,8 a 2,1 m'], ['Viven', 'A la orilla del agua, en el handramit'], ['Hacen', 'Barcas, pesca y cultivos'], ['Conoces a', 'Hyoi, tu amigo. Hnohra, el viejo de hocico gris que te enseña la lengua.']] },
+      { from: 11, tag: 'Los poetas del agua',
+        facts: [['Altura', '1,8 a 2,1 m'], ['Viven', 'A la orilla del agua, en el handramit'], ['Hacen', 'Poesía, canto, barcas y pesca'], ['Conoces a', 'Hyoi, tu amigo. Hnohra, el viejo de hocico gris que te enseña la lengua.']] },
+      { from: 12,
+        facts: [['Altura', '1,8 a 2,1 m'], ['Viven', 'A la orilla del agua, en el handramit'], ['Hacen', 'Poesía, canto, barcas, pesca y la caza del hnakra'], ['Conoces a', 'Hyoi, tu amigo. Hnohra, el viejo de hocico gris que te enseña la lengua. Hrikki, la cachorra.']] },
+      { from: 13,
+        facts: [['Altura', '1,8 a 2,1 m'], ['Viven', 'A la orilla del agua, en el handramit'], ['Hacen', 'Poesía, canto, barcas, pesca y la caza del hnakra'], ['Conoces a', 'Hyoi, tu amigo. Hnohra, el viejo de hocico gris que te enseña la lengua. Whin, compañero de caza. Hrikki, la cachorra.']] }
+    ] },
+    { id: 'sorn', from: 7, v: [
+      { from: 7, name: 'Sorns', tag: 'Las figuras altas', cap: 'Capítulo 7',
+        text: 'Ransom los ve de lejos: seres de dos o tres veces la altura de un hombre, con piernas delgadísimas y pecho abultado. Tienen caras largas y caídas y son pálidos, como espectros. Ransom cree que lo van a entregar a ellos y huye.' },
+      { from: 8, cap: 'Capítulos 7 y 8',
+        text: 'Seres de dos o tres veces la altura de un hombre, con piernas delgadísimas, pecho abultado y caras largas y caídas. Ransom cree que lo van a entregar a ellos y huye. Luego oye la voz de uno, grave como un cuerno, y lo ve guiando un rebaño.' },
+      { from: 11, name: 'Séroni', tag: 'Sorns: los que más saben', cap: 'Capítulos 7 a 11',
+        text: 'Los hrossa los llaman séroni: un sorn, varios séroni. Dicen que son hnau y que son los que más saben. Miden dos o tres veces la altura de un hombre. Ransom sigue temiéndolos.' },
+      { from: 15, tag: 'Sorns: los pensadores de la altura', cap: 'Vistos en el 7, conocidos en el 15',
+        text: 'Dos o tres veces la altura de un hombre. Piernas larguísimas y finas, pecho abultado que parece pesar demasiado, cara larga y solemne con la nariz y la boca caídas. Un manto pálido que parece de plumas. Manos de siete dedos abiertas en abanico, pura piel sobre hueso. De lejos, Ransom ve un espectro o un ogro. De cerca, Augray resulta sereno.',
+        facts: [['Altura', '4 a 5,5 m'], ['Viven', 'En cuevas, al borde de la tierra alta'], ['Hacen', 'Ciencia, astronomía, pastoreo'], ['Voz', 'Grave, como un cuerno'], ['Conoces a', 'Augray']] }
+    ] },
+    { id: 'pfifl', from: 11, v: [
+      { from: 11, name: 'Pfifltriggi', tag: 'Los artesanos', cap: 'Solo de oídas', locked: true,
+        text: 'La tercera especie hnau. Según los hrossa, cavan, funden lo que sacan y nadie los iguala haciendo cosas, sobre todo con la sangre del sol, que es como llaman al oro. Todavía no has visto ninguno, así que aquí solo hay una silueta.' }
+    ] },
+    { id: 'eldil', from: 11, v: [
+      { from: 11, name: 'Eldila', tag: 'Los que casi no se ven', cap: 'Solo de oídas', locked: true,
+        text: 'Los hrossa hablan de seres que van y vienen y que casi no se ven. Ransom piensa que es una creencia suya.' },
+      { from: 12, cap: 'Capítulos 11 y 12',
+        text: 'Una cachorra habla con alguien que Ransom no logra ver. Hyoi le dice que hay que mirar bien. Los eldila son difíciles de ver, como la luz.' },
+      { from: 13, cap: 'Capítulos 11 a 13', locked: false,
+        text: 'Durante la caza, Ransom oye la voz de un eldil. Ya no puede dudar de que existen. La voz le dice que debe ir a ver a Oyarsa.' },
+      { from: 15, cap: 'Capítulos 11, 13 y 15',
+        text: 'No son hnau como los demás. Los hrossa los ven con facilidad. Ransom apenas nota un temblor de luz y oye una voz. Oyarsa, quien gobierna Malacandra, es el mayor de ellos. Aún no lo has visto.',
+        why: ['Cómo lo explica Augray', 'Lo más rápido que captan nuestros sentidos es la luz. El cuerpo de un eldil es un movimiento tan veloz como ella. Para nosotros es casi nada. Para él, una pared es como una nube.'] }
+    ] },
+    { id: 'hnakra', from: 7, v: [
+      { from: 7, name: 'La bestia del agua', tag: 'Un hocico que chasquea', cap: 'Capítulo 7',
+        text: 'Cuando los sorns se acercan, algo oscuro y veloz llega por el agua dejando una estela de espuma. Lanza un mordisco. En la confusión, Ransom escapa.' },
+      { from: 12, name: 'Hnakra', tag: 'El cazador del agua', cap: 'Capítulos 7 y 12',
+        text: 'Una bestia, no un hnau. Oscuro, largo y rapidísimo: llega como un torpedo dejando una estela de espuma, con mandíbulas que chasquean como las de un tiburón. Los hrossa lo cazan con lanzas desde sus barcas.',
+        why: ['Lo que dice Hyoi', 'El hnakra es su enemigo y también lo quieren. Sin peligro en los lagos, el bosque no sería tan luminoso ni el agua tan tibia.'] },
+      { from: 13, cap: 'Capítulos 7, 12 y 13' }
+    ] },
+    { id: 'ransom', from: 1, v: [
+      { from: 1, name: 'Ransom', tag: 'Un caminante', cap: 'Desde el capítulo 1',
+        text: 'Elwin Ransom, filólogo de Cambridge. Alto, de hombros algo caídos, entre treinta y cinco y cuarenta años. Está de vacaciones y recorre Inglaterra a pie.' },
+      { from: 2,
+        text: 'Elwin Ransom, filólogo de Cambridge. Alto, de hombros algo caídos, entre treinta y cinco y cuarenta años, con la ropa gastada de quien anda de excursión a pie. Lo drogan y lo secuestran.' },
+      { from: 7, tag: 'Humano en un mundo ajeno' },
+      { from: 9,
+        why: ['Por qué importa su oficio', 'Estudia lenguas. Cuando oye hablar a Hyoi, la curiosidad le gana al miedo. Aprender el idioma es lo que le abre este mundo.'] },
+      { from: 11, tag: 'Humano de Thulcandra',
+        text: 'Elwin Ransom, filólogo de Cambridge. Alto, de hombros algo caídos, entre treinta y cinco y cuarenta años, con la ropa gastada de quien anda de excursión a pie. Lo secuestran para entregarlo a los sorns.' }
+    ] },
+    { id: 'wd', from: 1, v: [
+      { from: 1, name: 'Weston y Devine', tag: 'Un viejo compañero y un físico', cap: 'Desde el capítulo 1',
+        text: 'Devine fue compañero de colegio de Ransom: delgado y burlón. Weston, a la izquierda, es físico: corpulento y de voz fuerte. Ransom los sorprende forcejeando con un muchacho.' },
+      { from: 2, tag: 'Los secuestradores' },
+      { from: 4,
+        text: 'Weston, a la izquierda, es físico: corpulento, de voz fuerte. Construyó la nave y cree que la humanidad debe extenderse a otros mundos cueste lo que cueste. Devine fue compañero de colegio de Ransom, delgado y burlón. Solo le interesa lo que pueda ganar.' },
+      { from: 11,
+        text: 'Weston, a la izquierda, es físico: corpulento, de voz fuerte, construyó la nave y cree que la humanidad debe extenderse a otros mundos cueste lo que cueste. Devine fue compañero de colegio de Ransom: delgado, burlón, y solo le interesa el oro.' }
+    ] }
   ];
+
+  /* ---------- Capítulo actual ---------- */
+  function load(k) { try { var n = parseInt(window.localStorage.getItem(k), 10); return n >= 1 && n <= TOTAL ? n : 0; } catch (e) { return 0; } }
+  function store(k, n) { try { window.localStorage.setItem(k, String(n)); } catch (e) {} }
+  var CH = load('atlas.ch'), LEIDO = Math.max(load('atlas.leido'), CH);
+
+  // Versión vigente de un ítem en CH, o null si el lector aún no lo conoce
+  function ver(it) {
+    if (!it || CH < (it.from || 0)) return null;
+    var out = null, i, k, o;
+    for (i = 0; i < it.v.length && it.v[i].from <= CH; i++) {
+      o = {};
+      if (out) for (k in out) o[k] = out[k];
+      for (k in it.v[i]) o[k] = it.v[i][k];
+      out = o;
+    }
+    if (out && it.id) out.id = it.id;
+    return out;
+  }
+  function findIn(arr, id) { for (var i = 0; i < arr.length; i++) if (arr[i].id === id) return arr[i]; return null; }
 
   var card = $('#card'), list = $('#list');
   var mode = 'world';
   var sel = { world: null, gal: null };
   function items() { return mode === 'world' ? PLACES : FOLK; }
+  function shown() { var r = []; items().forEach(function (it) { var v = ver(it); if (v) r.push(v); }); return r; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function renderCard() {
-    var it = null, id = sel[mode];
-    items().forEach(function (x) { if (x.id === id) it = x; });
-    if (!it) it = INTRO[mode];
-    var h = '<div class="eyebrow">' + esc(it.cap) + '</div><h2>' + esc(it.name) + '</h2><div class="tag">' + esc(it.tag) + '</div><p>' + esc(it.text) + '</p>';
+    var it = CH ? ver(findIn(items(), sel[mode])) || ver(INTRO[mode]) : null;
+    if (!it) it = NEUTRAL;
+    var h = '<div class="eyebrow">' + esc(it.cap) + '</div><h2>' + esc(it.name) + '</h2>' + (it.tag ? '<div class="tag">' + esc(it.tag) + '</div>' : '') + '<p>' + esc(it.text) + '</p>';
     if (it.why) h += '<p class="why"><b>' + esc(it.why[0]) + '.</b> ' + esc(it.why[1]) + '</p>';
     if (it.facts) { h += '<dl>'; it.facts.forEach(function (f) { h += '<dt>' + esc(f[0]) + '</dt><dd>' + esc(f[1]) + '</dd>'; }); h += '</dl>'; }
     card.innerHTML = h;
   }
   function renderList() {
+    var vs = shown();
     $('#list-title').textContent = mode === 'world' ? 'Lugares' : 'Habitantes';
+    $('.listwrap').hidden = !vs.length;
     var h = '<button data-id="" aria-pressed="' + (sel[mode] ? 'false' : 'true') + '">Vista general</button>';
-    items().forEach(function (it) {
-      h += '<button data-id="' + it.id + '" class="' + (it.locked ? 'locked' : '') + '" aria-pressed="' + (sel[mode] === it.id ? 'true' : 'false') + '">' + esc(it.name) + '</button>';
+    vs.forEach(function (v) {
+      h += '<button data-id="' + v.id + '" class="' + (v.locked ? 'locked' : '') + '" aria-pressed="' + (sel[mode] === v.id ? 'true' : 'false') + '">' + esc(v.name) +
+        (v.from === CH ? '<span class="dot" aria-hidden="true"></span><span class="sr"> (nuevo)</span>' : '') + '</button>';
     });
     list.innerHTML = h;
+    $('#hint').hidden = !CH;
     $('#hint').textContent = mode === 'world'
-      ? 'Arrastra para girar, rueda o pellizca para acercarte. Si subes la cámara, el cielo se oscurece.'
+      ? (CH < 7 ? 'Aún no hay mapa para este capítulo. En Habitantes puedes ver a los viajeros.' : 'Arrastra para girar, rueda o pellizca para acercarte. Si subes la cámara, el cielo se oscurece.')
       : 'Arrastra para girar alrededor de las figuras. Elige una para verla de cerca.';
   }
   var onSelect = function () {};
@@ -263,6 +394,7 @@
     select(b.getAttribute('data-id') || null);
   });
   function select(id) {
+    if (id && !ver(findIn(items(), id))) return;
     sel[mode] = id;
     renderCard(); renderList();
     onSelect(id);
@@ -278,7 +410,56 @@
   }
   $('#tab-world').addEventListener('click', function () { setMode('world'); });
   $('#tab-gal').addEventListener('click', function () { setMode('gal'); });
-  renderCard(); renderList();
+
+  /* ---------- Selector de capítulo ---------- */
+  var chSel = $('#chsel'), chAsk = $('#chask'), pending = 0;
+  (function () {
+    var a = '', b = '';
+    for (var n = 1; n <= TOTAL; n++) { a += '<option value="' + n + '">' + n + '</option>'; b += '<option value="' + n + '">Capítulo ' + n + '</option>'; }
+    chSel.innerHTML = a; $('#firstsel').innerHTML = b;
+  })();
+  var chapterHook = function () {};
+  function syncChapterUI() {
+    $('#chap').hidden = !CH;
+    $('#first').hidden = !!CH;
+    chSel.value = String(CH || 1);
+    $('#chprev').disabled = CH <= 1;
+    $('#chnext').disabled = CH >= TOTAL;
+    $('#brand p').textContent = CH ? 'Capítulo ' + CH + ' de ' + TOTAL : 'Elige tu capítulo';
+  }
+  function hideAsk() { pending = 0; chAsk.hidden = true; }
+  function goChapter(n, leido) {
+    CH = n; LEIDO = leido;
+    store('atlas.ch', CH); store('atlas.leido', LEIDO);
+    hideAsk();
+    var lost = false;
+    ['world', 'gal'].forEach(function (m) {
+      if (sel[m] && !ver(findIn(m === 'world' ? PLACES : FOLK, sel[m]))) { sel[m] = null; if (m === mode) lost = true; }
+    });
+    syncChapterUI(); renderCard(); renderList();
+    chapterHook(lost);
+  }
+  function requestChapter(n) {
+    n = Math.max(1, Math.min(TOTAL, n));
+    if (n === CH) { hideAsk(); chSel.value = String(CH); return; }
+    if (n <= LEIDO) { goChapter(n, LEIDO); return; }
+    pending = n;
+    chSel.value = String(n);
+    $('#chmsg').textContent = 'Vas a revelar hasta el capítulo ' + n + '. ¿Ya lo leíste?';
+    chAsk.hidden = false;
+  }
+  chSel.addEventListener('change', function () { requestChapter(parseInt(chSel.value, 10)); });
+  $('#chprev').addEventListener('click', function () { requestChapter((pending || CH) - 1); });
+  $('#chnext').addEventListener('click', function () { requestChapter((pending || CH) + 1); });
+  $('#chyes').addEventListener('click', function () { if (pending) goChapter(pending, Math.max(LEIDO, pending)); });
+  $('#chno').addEventListener('click', function () { hideAsk(); chSel.value = String(CH); });
+  $('#firstgo').addEventListener('click', function () { var n = parseInt($('#firstsel').value, 10) || 1; goChapter(n, Math.max(LEIDO, n)); });
+
+  syncChapterUI(); renderCard(); renderList();
+  window.__atlas = {
+    select: function (id) { select(id); }, setMode: function (m) { setMode(m); },
+    setChapter: function (n) { n = Math.max(1, Math.min(TOTAL, n | 0)); goChapter(n, n); }
+  };
 
   /* ---------- 3D ---------- */
   var renderer;
@@ -338,6 +519,12 @@
   sun.shadow.camera.near = 20; sun.shadow.camera.far = 420; sun.shadow.bias = -0.0006;
   world.add(sun);
 
+  /* --- Registro de visibilidad por capítulo: gate(obj, desde, hasta) --- */
+  var GATES = [];
+  function gate(obj, from, to) { GATES.push({ o: obj, from: from, to: to }); return obj; }
+  function layerAt(from, to) { var g = new THREE.Group(); world.add(g); return gate(g, from, to); }
+  var land = layerAt(7), layer = land;   // onGround e instanced agregan a "layer"
+
   (function buildTerrain() {
     var SEG = 220;
     var g = new THREE.PlaneGeometry(SIZE, SIZE, SEG, SEG); g.rotateX(-Math.PI / 2);
@@ -361,10 +548,10 @@
     g.setAttribute('color', new THREE.BufferAttribute(col, 3));
     g.computeVertexNormals();
     var m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 }));
-    m.receiveShadow = true; m.castShadow = true; world.add(m);
+    m.receiveShadow = true; m.castShadow = true; layer.add(m);
     var wg = new THREE.PlaneGeometry(SIZE - 1.2, SIZE - 1.2); wg.rotateX(-Math.PI / 2);
     var water = new THREE.Mesh(wg, new THREE.MeshStandardMaterial({ color: 0x2f76d8, roughness: 0.12, metalness: 0.25, transparent: true, opacity: 0.86 }));
-    water.receiveShadow = true; world.add(water);
+    water.receiveShadow = true; layer.add(water);
   })();
 
   /* --- Piezas reutilizables --- */
@@ -562,18 +749,19 @@
 
   var FIG = 1.25;
   function put(scene, obj, x, y, z, ry, s) { obj.position.set(x, y, z); obj.rotation.y = ry || 0; obj.scale.multiplyScalar(s === undefined ? FIG : s); scene.add(obj); return obj; }
-  function onGround(obj, x, z, ry, s, lift) { return put(world, obj, x, gy(x, z) + (lift || 0), z, ry, s); }
+  function onGround(obj, x, z, ry, s, lift) { return put(layer, obj, x, gy(x, z) + (lift || 0), z, ry, s); }
 
   /* --- Torre de Augray: saliente con cueva en la pared este --- */
+  layer = layerAt(14);
   var caveX = AX, caveY = 27;
   for (var sx = 0; sx < 30; sx += 0.5) { var yy = terr(AX - sx, AZ).y; if (yy <= 25) { caveX = AX - sx; caveY = yy; break; } }
   var rock = mat(0xa9c4ac, 1, 0, { flatShading: true });
-  var ledge = new THREE.Mesh(new THREE.CylinderGeometry(4.6, 5.4, 8, 9), rock); ledge.position.set(caveX - 2.6, caveY - 4, AZ); ledge.castShadow = true; ledge.receiveShadow = true; world.add(ledge);
-  var mouth = new THREE.Mesh(SPH, new THREE.MeshBasicMaterial({ color: 0x120a12 })); mouth.position.set(caveX + 1.6, caveY + 2.6, AZ); mouth.scale.set(2.8, 4.8, 3.2); world.add(mouth);
-  var fire = new THREE.Mesh(SPH, new THREE.MeshBasicMaterial({ color: 0xffa040 })); fire.position.set(caveX - 0.4, caveY + 0.45, AZ - 0.6); fire.scale.set(0.45, 0.55, 0.45); world.add(fire);
-  var fireLight = new THREE.PointLight(0xff9a40, 1.5, 18); fireLight.position.set(caveX - 1.2, caveY + 1.6, AZ - 0.4); world.add(fireLight);
-  put(world, makeSorn(), caveX - 4.2, caveY, AZ + 2.2, -Math.PI / 2 - 0.3);
-  put(world, makeHuman(RANSOM), caveX - 5.6, caveY, AZ + 0.4, Math.PI / 2 + 0.6);
+  var ledge = new THREE.Mesh(new THREE.CylinderGeometry(4.6, 5.4, 8, 9), rock); ledge.position.set(caveX - 2.6, caveY - 4, AZ); ledge.castShadow = true; ledge.receiveShadow = true; layer.add(ledge);
+  var mouth = new THREE.Mesh(SPH, new THREE.MeshBasicMaterial({ color: 0x120a12 })); mouth.position.set(caveX + 1.6, caveY + 2.6, AZ); mouth.scale.set(2.8, 4.8, 3.2); layer.add(mouth);
+  var fire = new THREE.Mesh(SPH, new THREE.MeshBasicMaterial({ color: 0xffa040 })); fire.position.set(caveX - 0.4, caveY + 0.45, AZ - 0.6); fire.scale.set(0.45, 0.55, 0.45); layer.add(fire);
+  var fireLight = new THREE.PointLight(0xff9a40, 1.5, 18); fireLight.position.set(caveX - 1.2, caveY + 1.6, AZ - 0.4); layer.add(fireLight);
+  put(layer, makeSorn(), caveX - 4.2, caveY, AZ + 2.2, -Math.PI / 2 - 0.3);
+  put(layer, makeHuman(RANSOM), caveX - 5.6, caveY, AZ + 0.4, Math.PI / 2 + 0.6);
 
   /* --- Lugares en el suelo del cañón --- */
   var VZ = 8, SHIP_Z = -88, HERD_Z = 75;
@@ -600,23 +788,28 @@
     for (i = 1; i <= 70; i++) { t = i / 70; x = lerp(base.x, end.x, t); z = lerp(base.z, end.z, t) + 7 * Math.sin(t * Math.PI * 4) * (1 - t); roadPts.push(new THREE.Vector3(x, gy(x, z) + 0.25, z)); }
     roadPts.push(new THREE.Vector3(caveX - 5.5, caveY + 0.2, AZ));
     var road = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(roadPts), 420, 0.32, 5, false), mat(0xf6e6c2, 1));
-    road.receiveShadow = true; world.add(road);
-    var dotM = mat(0xf6e6c2, 1), sx0 = AX + 15, sz0 = AZ + 5, ex = HALF - 3, ez = AZ + 18, n = Math.floor((ex - sx0) / 3.6);
-    for (i = 0; i <= n; i++) { t = i / n; x = lerp(sx0, ex, t); z = lerp(sz0, ez, t) + 2 * Math.sin(t * 7); var d = new THREE.Mesh(SPH, dotM); d.position.set(x, gy(x, z) + 0.2, z); d.scale.setScalar(0.38); world.add(d); }
+    road.receiveShadow = true; layerAt(13).add(road);
+    var dots = layerAt(13), dotM = mat(0xf6e6c2, 1), sx0 = AX + 15, sz0 = AZ + 5, ex = HALF - 3, ez = AZ + 18, n = Math.floor((ex - sx0) / 3.6);
+    for (i = 0; i <= n; i++) { t = i / n; x = lerp(sx0, ex, t); z = lerp(sz0, ez, t) + 2 * Math.sin(t * 7); var d = new THREE.Mesh(SPH, dotM); d.position.set(x, gy(x, z) + 0.2, z); d.scale.setScalar(0.38); dots.add(d); }
   })();
 
-  // Aldea
-  [-2, -1, 0, 1, 2].forEach(function (k) { var z = VZ + k * 5.6; onGround(makeHut(), eastX(z, 10.5 + (k % 2 ? 1.5 : 0)), z, -Math.PI / 2 + (rng() - 0.5) * 0.5, 1.3); });
+  // Aldea (Hyoi y Ransom a la orilla desde el 9, el resto desde el 10, el eldil desde el 12)
+  layer = layerAt(9);
   onGround(makeHross(), vx, VZ, -2.2);
   onGround(makeHuman(RANSOM), eastX(VZ - 1.9, 3.4), VZ - 1.9, 0.6);
+  layer = layerAt(10);
+  [-2, -1, 0, 1, 2].forEach(function (k) { var z = VZ + k * 5.6; onGround(makeHut(), eastX(z, 10.5 + (k % 2 ? 1.5 : 0)), z, -Math.PI / 2 + (rng() - 0.5) * 0.5, 1.3); });
   onGround(makeHross({ muzzle: 0x9a9aa4, color: 0x1d1d24 }), eastX(VZ + 5.5, 6), VZ + 5.5, -1.5);
   onGround(makeHross(), eastX(VZ - 7, 4.5), VZ - 7, -0.6);
   onGround(makeHross(), eastX(VZ + 10, 5), VZ + 10, -2.6, FIG * 0.5);
+  layer = layerAt(12);
   onGround(makeEldil(), eastX(VZ + 11.8, 4.6), VZ + 11.8, 0, 1.3);
+  layer = layerAt(10);
   onGround(makeBoat(), eastX(VZ + 2, -1.2), VZ + 2, 0.12, FIG, 0.05);
   onGround(makeBoat(), eastX(VZ - 5, -1.5), VZ - 5, -0.2, FIG, 0.05);
 
   // Nave, cabaña y los dos secuestradores
+  layer = layerAt(7);
   onGround(makeShip(), shipX, SHIP_Z, 0.4, 1);
   onGround(makeCabin(), westX(SHIP_Z + 10, 7.5), SHIP_Z + 10, 1.2, 1);
   onGround(makeHuman(WESTON), westX(SHIP_Z + 5, 3.5), SHIP_Z + 5, 1.4);
@@ -628,26 +821,29 @@
   var h1 = makeHross({ spear: true }); h1.position.set(0, 0.25, 1.3); hunt.add(h1);
   var h2 = makeHross({ spear: true }); h2.position.set(0, 0.25, -1.4); h2.rotation.y = 0.4; hunt.add(h2);
   var r1 = makeHuman(RANSOM); r1.position.set(0, 0.25, 0); hunt.add(r1);
-  hunt.scale.setScalar(FIG); world.add(hunt);
+  hunt.scale.setScalar(FIG); world.add(gate(hunt, 13));
   var hnakraPivot = new THREE.Group(); hnakraPivot.position.set(lakeX - 2.5, -0.38, LAKE_Z - 1);
   var hk = makeHnakra(); hk.position.set(6.5, 0, 0); hk.scale.setScalar(FIG); hnakraPivot.add(hk);
   var foamM = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.75 });
   for (var fi = 0; fi < 16; fi++) { var fa = 0.25 + fi * 0.13, f = new THREE.Mesh(SPH, foamM); f.position.set(Math.cos(fa) * 6.5, 0.4, Math.sin(fa) * 6.5); f.scale.set(0.5 - fi * 0.022, 0.06, 0.5 - fi * 0.022); hnakraPivot.add(f); }
-  world.add(hnakraPivot);
+  world.add(gate(hnakraPivot, 7));
+  layer = layerAt(13);
   onGround(makeEldil(), lakeX + 14, LAKE_Z + 12, 0, 1.3);
 
   // Rebaño
+  layer = layerAt(8);
   onGround(makeSorn(), herdX, HERD_Z, 0.8);
   onGround(makeBeast(), westX(HERD_Z - 6, 11), HERD_Z - 6, 0.5);
   onGround(makeBeast(), westX(HERD_Z + 5, 12.5), HERD_Z + 5, 2.1);
   onGround(makeBeast(), westX(HERD_Z + 1, 15), HERD_Z + 1, -0.6, FIG * 0.85);
 
   /* --- Agujas, bosque y masas rosadas (instanciados) --- */
+  layer = land;
   var dummy = new THREE.Object3D(), tc = new THREE.Color();
   function instanced(geo, material, list, fn) {
     var m = new THREE.InstancedMesh(geo, material, list.length);
     list.forEach(function (it, i) { fn(it, i, m); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); });
-    m.castShadow = true; m.receiveShadow = true; world.add(m); return m;
+    m.castShadow = true; m.receiveShadow = true; layer.add(m); return m;
   }
   var spires = [], tallest = null;
   (function () {
@@ -728,7 +924,7 @@
     var gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.18, 'rgba(170,215,255,1)'); gr.addColorStop(0.5, 'rgba(90,160,255,.25)'); gr.addColorStop(1, 'rgba(90,160,255,0)');
     x.fillStyle = gr; x.fillRect(0, 0, 64, 64);
     thulMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, opacity: 0, fog: false, depthWrite: false });
-    var s = new THREE.Sprite(thulMat); s.position.copy(THUL); s.scale.setScalar(30); world.add(s);
+    var s = new THREE.Sprite(thulMat); s.position.copy(THUL); s.scale.setScalar(30); world.add(gate(s, 7));
   })();
 
   /* ---------- Galería de habitantes (a escala real, 1 unidad = 1 m) ---------- */
@@ -755,6 +951,9 @@
   addFig('sorn', makeSorn(), 1.7, 5.6);
   addFig('eldil', makeEldil(), 4.3, 3.5);
   addFig('hnakra', makeHnakra(), 7.8, 1.3, -1.15, 3.6);
+  // Capítulo desde el que cada figura aparece en la galería (la regla siempre se ve)
+  var FIG_FROM = { pfifl: 11, ransom: 1, wd: 1, hross: 9, sorn: 7, eldil: 13, hnakra: 7 };
+  Object.keys(FIG_FROM).forEach(function (id) { gate(figs[id].obj, FIG_FROM[id]); });
 
   /* ---------- Cámara, controles y etiquetas ---------- */
   var camera = new THREE.PerspectiveCamera(45, 1, 0.3, 2400);
@@ -788,9 +987,47 @@
     b.addEventListener('click', function () { select(id); });
     labelsEl.appendChild(b); labels.push({ el: b, mode: m, id: id, pos: pos });
   }
-  PLACES.forEach(function (pl) { var s = SPOT[pl.id]; addLabel('world', pl.id, pl.name, s.p.clone().setY(s.p.y + s.lift), pl.locked); });
-  FOLK.forEach(function (f) { var g = figs[f.id]; addLabel('gal', f.id, f.id === 'pfifl' ? 'Pfifltriggi ?' : f.name, V3(g.x, g.h + 0.3 + (f.id === 'wd' ? 0.75 : 0), 0), f.locked); });
+  // Una etiqueta por ítem; applyChapter actualiza su texto y la oculta si el ítem aún no existe
+  PLACES.forEach(function (pl) { var s = SPOT[pl.id]; addLabel('world', pl.id, '', s.p.clone().setY(s.p.y + s.lift)); });
+  FOLK.forEach(function (f) { var g = figs[f.id]; addLabel('gal', f.id, '', V3(g.x, g.h + 0.3 + (f.id === 'wd' ? 0.75 : 0), 0)); });
   for (var ti = 1; ti <= 6; ti++) { var te = document.createElement('div'); te.className = 'tick'; te.textContent = ti + ' m'; te.hidden = true; labelsEl.appendChild(te); labels.push({ el: te, mode: 'gal', tick: true, pos: V3(RULER_X - 0.12, ti, 0) }); }
+
+  /* --- Ransom está aquí ---
+     HERE: capítulo -> clave de escena. HERE_AT: clave -> { scene, place, p }.
+     scene es la escena 3D donde va el marcador ('world' por ahora); place es el lugar del panel. */
+  var HERE = { 7: 'nave', 8: 'rebano', 9: 'orilla', 10: 'aldea', 11: 'aldea', 12: 'aldea', 13: 'caza', 14: 'torre', 15: 'torre' };
+  function atGround(x, z, h) { return V3(x, gy(x, z) + h, z); }
+  var HERE_AT = {
+    nave: { scene: 'world', place: 'nave', p: atGround(westX(SHIP_Z + 6, 1.2), SHIP_Z + 6, 4.6) },
+    rebano: { scene: 'world', place: 'rebano', p: atGround(westX(HERD_Z + 3, 3), HERD_Z + 3, 4.6) },
+    orilla: { scene: 'world', place: 'handramit', p: atGround(eastX(VZ - 1.9, 3.4), VZ - 1.9, 4.4) },
+    aldea: { scene: 'world', place: 'aldea', p: atGround(eastX(VZ - 1.9, 3.4), VZ - 1.9, 4.4) },
+    caza: { scene: 'world', place: 'hnakra', p: V3(lakeX + 7.5, 4.6, LAKE_Z + 7) },
+    torre: { scene: 'world', place: 'torre', p: V3(caveX - 5.6, caveY + 4.4, AZ + 0.4) }
+  };
+  var hereScene = null;
+  var marker = new THREE.Mesh(new THREE.OctahedronGeometry(0.42, 0), new THREE.MeshBasicMaterial({ color: 0xe6b655, fog: false }));
+  marker.scale.set(1, 1.5, 1); marker.visible = false; world.add(marker);
+  var hereEl = document.createElement('div'); hereEl.className = 'here'; hereEl.textContent = 'Ransom está aquí'; hereEl.hidden = true; labelsEl.appendChild(hereEl);
+  var hereLab = { el: hereEl, mode: 'world', here: true, pos: V3(0, 0, 0) };
+  labels.push(hereLab);
+
+  function applyChapter() {
+    GATES.forEach(function (g) { g.o.visible = CH >= g.from && (g.to === undefined || CH <= g.to); });
+    labels.forEach(function (L) {
+      if (!L.id) return;
+      var v = ver(findIn(L.mode === 'world' ? PLACES : FOLK, L.id));
+      L.off = !v || (L.mode === 'gal' && !figs[L.id].obj.visible);
+      if (v) { L.el.textContent = L.id === 'pfifl' ? 'Pfifltriggi ?' : v.name; L.el.classList.toggle('locked', !!v.locked); }
+      L.el.setAttribute('aria-pressed', sel[L.mode] === L.id ? 'true' : 'false');
+      L.occ = false;
+    });
+    var h = HERE_AT[HERE[CH]] || null;
+    hereScene = h ? h.scene : null;
+    marker.visible = hereScene === 'world';
+    hereLab.off = !marker.visible;
+    if (h) { marker.position.copy(h.p); hereLab.pos.copy(h.p); hereLab.pos.y -= 0.75; }
+  }
 
   var fly = null;
   function flyTo(p, t, dur) {
@@ -825,7 +1062,8 @@
       if (s.star) { var t0 = V3(0, 10, 0); flyTo(viewPos(t0, { d: 300, az: -45, el: 12 }), t0, 1800); }
       else flyTo(viewPos(s.p, s.v), s.p.clone());
     } else {
-      var g = figs[id], d = Math.max(g.fh * 2.1, 4.6); if (camera.aspect < 1) d /= Math.max(camera.aspect, 0.6);
+      var g = figs[id]; if (!g.obj.visible) return;
+      var d = Math.max(g.fh * 2.1, 4.6); if (camera.aspect < 1) d /= Math.max(camera.aspect, 0.6);
       var t = V3(g.x, g.h * 0.55, 0); flyTo(V3(t.x + d * 0.3, t.y + d * 0.14, d), t, 1100);
     }
   };
@@ -852,7 +1090,7 @@
     var recheck = (tickN++ % 8) === 0;
     for (var i = 0; i < labels.length; i++) {
       var L = labels[i];
-      if (L.mode !== mode) { L.el.hidden = true; continue; }
+      if (L.mode !== mode || L.off) { L.el.hidden = true; continue; }
       if (L.id === 'thulcandra') { if (skyT < 0.4) { L.el.hidden = true; continue; } }
       else if (L.mode === 'world') { if (recheck) L.occ = occluded(L.pos); if (L.occ && sel.world !== L.id) { L.el.hidden = true; continue; } }
       pv.copy(L.pos).project(camera);
@@ -860,7 +1098,9 @@
       var x = (pv.x * 0.5 + 0.5) * W, y = (-pv.y * 0.5 + 0.5) * H;
       if (y < 96 && x < 330) { L.el.hidden = true; continue; }
       L.el.hidden = false;
-      L.el.style.transform = L.tick ? 'translate(-100%,-50%) translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)' : 'translate(-50%,-100%) translate(' + x.toFixed(1) + 'px,' + (y - 9).toFixed(1) + 'px)';
+      L.el.style.transform = L.tick ? 'translate(-100%,-50%) translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)'
+        : L.here ? 'translate(-50%,0) translate(' + x.toFixed(1) + 'px,' + (y + 3).toFixed(1) + 'px)'
+        : 'translate(-50%,-100%) translate(' + x.toFixed(1) + 'px,' + (y - 9).toFixed(1) + 'px)';
     }
   }
   var last = performance.now();
@@ -879,10 +1119,12 @@
       for (var i = 0; i < eldilMats.length; i++) eldilMats[i].opacity = eldilMats[i].userData.base * (0.55 + 0.45 * Math.abs(Math.sin(tsec * (1.3 + i * 0.37) + i)));
       for (var id in figs) { var f = figs[id]; if (mode === 'gal' && sel.gal === id && id !== 'wd') f.obj.rotation.y += dt * 0.35; else f.obj.rotation.y += (f.ry - f.obj.rotation.y) * Math.min(1, dt * 4); }
       if (figs.eldil.obj.userData.spin) figs.eldil.obj.userData.spin.rotation.y = tsec * 0.8;
+      if (marker.visible) { marker.rotation.y = tsec * 1.2; marker.position.y = HERE_AT[HERE[CH]].p.y + 0.25 * Math.sin(tsec * 2); }
     }
     if (mode === 'world') {
       var y = camera.position.y;
-      skyT = 0.55 * sstep(8, 30, y) + 0.45 * sstep(30, 92, y);
+      // Antes del capítulo 7 no hay mundo: cielo oscuro con estrellas
+      skyT = CH < 7 ? 1 : 0.55 * sstep(8, 30, y) + 0.45 * sstep(30, 92, y);
       skyNow.copy(skyLow).lerp(skyHigh, skyT);
       world.background.copy(skyNow); world.fog.color.copy(skyNow);
       starMat.opacity = skyT; thulMat.opacity = Math.min(1, skyT * 1.3);
@@ -890,7 +1132,8 @@
     } else renderer.render(gal, camera);
     updateLabels();
   }
+  chapterHook = function (lost) { applyChapter(); if (lost) onSelect(null); };
+  applyChapter();
   requestAnimationFrame(frame);
-  window.__atlas = { select: select, setMode: setMode };
 })();
 </script>
