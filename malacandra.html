@@ -347,11 +347,17 @@
         facts: [['En la escena', 'Hyoi con Ransom, Hnohra y Whin']] },
       { from: 12, cap: 'Capítulos 10 a 12',
         facts: [['En la escena', 'Hyoi con Ransom, Hnohra, Whin y la cachorra Hrikki, que habla con un eldil']] },
-      { from: 13, facts: [['En la escena', 'Hyoi, Hnohra, Whin y la cachorra Hrikki, que habla con un eldil. Ransom ya no está aquí']] }
+      { from: 13, facts: [['En la escena', 'Hnohra y la cachorra Hrikki. Hyoi, Whin y Ransom salieron a la caza']] },
+      { from: 14, cap: 'Capítulos 10 a 13', facts: [['En la escena', 'Hnohra, Whin y la cachorra Hrikki. Falta Hyoi']] }
     ] },
     { id: 'hnakra', from: 13, v: [
       { from: 13, name: 'Aguas del hnakra', tag: 'La caza', cap: 'Capítulo 13',
         text: 'Cazar al hnakra es el mayor honor de un hross. Ransom va en la barca con Hyoi y Whin y lo consiguen. Justo después, un disparo de Weston mata a Hyoi, y un eldil ordena a Ransom ir a ver a Oyarsa.' }
+    ] },
+    { id: 'hyoi', from: 14, v: [
+      { from: 14, name: 'Donde cayó Hyoi', tag: 'Hnakrapunt', cap: 'Capítulo 13',
+        text: 'Aquí, en la orilla, recién vencido el hnakra, un disparo salido del bosque alcanzó a Hyoi. Ransom se arrodilló a su lado y trató de explicarle qué clase de criaturas son los hombres. Hyoi alcanzó a llamarlo hnakrapunt, matador del hnakra, y murió.',
+        why: ['Sobre esta figura', 'El libro no pone aquí ningún monumento. Es un recuerdo que añade este atlas: Hyoi frente al agua que amaba.'] }
     ] },
     { id: 'rebano', from: 8, v: [
       { from: 8, name: 'Bestias amarillas', tag: 'El rebaño de los sorns', cap: 'Capítulo 8',
@@ -1154,7 +1160,9 @@
 
   var lakeX = riverX(LAKE_Z);
   // Vistas a ras de suelo: se despeja el bosque entre la camara y lo que se mira
+  var HYZ = LAKE_Z + 21, HYX = eastX(HYZ, 2.5);   // orilla donde cayo Hyoi
   var FV = {
+    hyoi: { p: new THREE.Vector3(HYX, 2, HYZ), lift: 4.5, v: { d: 13, az: -75, el: 10 }, r: 6 },
     nave: { p: new THREE.Vector3(shipX, 5, SHIP_Z + 3), lift: 6, v: { d: 38, az: 112, el: 17 }, r: 8 },
     aldea: { p: new THREE.Vector3(eastX(VZ, 6), 2, VZ), lift: 6, v: { d: 30, az: 205, el: 17 }, r: 6 },
     hnakra: { p: new THREE.Vector3(lakeX, 0.5, LAKE_Z), lift: 5, v: { d: 36, az: -15, el: 24 }, r: 8 },
@@ -1179,7 +1187,7 @@
 
   // Aldea (Hyoi y Ransom a la orilla desde el 9, el resto desde el 10, el eldil desde el 12)
   layer = layerAt(9);
-  onGround(makeHross(), vx, VZ, -2.2);
+  gate(onGround(makeHross(), vx, VZ, -2.2), 9, 12);   // Hyoi vivo en la aldea
   gate(onGround(makeHuman(RANSOM), eastX(VZ - 1.9, 3.4), VZ - 1.9, 0.6), 9, 12);
   layer = layerAt(10);
   [-2, -1, 0, 1, 2].forEach(function (k) { var z = VZ + k * 5.6; onGround(makeHut(), eastX(z, 10.5 + (k % 2 ? 1.5 : 0)), z, -Math.PI / 2 + (rng() - 0.5) * 0.5, 1.3); });
@@ -1202,10 +1210,14 @@
   // Caza del hnakra
   var hunt = new THREE.Group(); hunt.position.set(lakeX + 7.5, 0.02, LAKE_Z + 7); hunt.rotation.y = -2.2;
   hunt.add(makeBoat());
-  var h1 = makeHross({ spear: true }); h1.position.set(0, 0.25, 1.3); hunt.add(h1);
+  var h1 = makeHross({ spear: true }); h1.position.set(0, 0.25, 1.3); hunt.add(gate(h1, 13, 13));   // Hyoi en la barca
   var h2 = makeHross({ spear: true }); h2.position.set(0, 0.25, -1.4); h2.rotation.y = 0.4; hunt.add(h2);
   var r1 = makeHuman(RANSOM); r1.position.set(0, 0.25, 0); hunt.add(gate(r1, 13, 13));
   hunt.scale.setScalar(FIG); world.add(gate(hunt, 13));
+  // Recuerdo de Hyoi en la orilla donde cayo. Homenaje del atlas (no esta en el libro), desde el 14.
+  var hyoiMem = makeHross({ spear: true });
+  hyoiMem.traverse(function (o) { if (o.isMesh) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.55; o.material.color.lerp(new THREE.Color(0xa9bfe6), 0.55); o.material.emissive = new THREE.Color(0x26324d); o.castShadow = false; } });
+  gate(put(world, hyoiMem, HYX, gy(HYX, HYZ), HYZ, -Math.PI / 2), 14);
   var hnakraPivot = new THREE.Group(); hnakraPivot.position.set(lakeX - 2.5, -0.38, LAKE_Z - 1);
   var hk = makeHnakra(); hk.position.set(6.5, 0, 0); hk.scale.setScalar(FIG); hnakraPivot.add(hk);
   var foamM = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.75 });
@@ -1859,6 +1871,7 @@
     rosa: { p: V3(rose0.x, rose0.y + 4, rose0.z), lift: 8, v: { d: 46, az: 60, el: 16 } },
     aldea: FV.aldea,
     hnakra: FV.hnakra,
+    hyoi: FV.hyoi,
     rebano: FV.rebano,
     torre: { p: V3(caveX - 3, caveY + 3.5, AZ), lift: 6.5, v: { d: 32, az: -112, el: 10 } },
     thulcandra: { p: THUL, lift: 0, star: true },
