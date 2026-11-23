@@ -1,0 +1,840 @@
+<title>Atlas de Malacandra</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<style>
+  /* Layout: escena 3D a sangre a la izquierda, cuaderno de campo a la derecha (hoja inferior en movil). */
+  :root {
+    --night: #1c1222;
+    --ink: #2a1b33;
+    --ink-2: #3a2745;
+    --line: #5a4266;
+    --paper: #f8e9ec;
+    --rose: #e9aebb;
+    --muted: #c3abc6;
+    --gold: #e6b655;
+    --display: "Marcellus", "Iowan Old Style", Georgia, serif;
+    --body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body { background: var(--night); color: var(--paper); font-family: var(--body); font-size: 16px; line-height: 1.5; overflow: hidden; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  #app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 372px; }
+  #stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--night); }
+  #c { display: block; width: 100%; height: 100%; touch-action: none; }
+  #labels { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+
+  #brand { position: absolute; top: 14px; left: max(16px, env(safe-area-inset-left, 0px)); right: 16px; pointer-events: none; text-shadow: 0 1px 10px rgba(28, 18, 34, .75); }
+  #brand h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(1.5rem, 3.4vw, 2.3rem); letter-spacing: .04em; line-height: 1.1; }
+  #brand p { margin: 2px 0 0; font-size: .86rem; letter-spacing: .08em; text-transform: uppercase; color: var(--paper); opacity: .85; }
+
+  .lab { position: absolute; left: 0; top: 0; pointer-events: auto; white-space: nowrap; font-size: .8rem; font-weight: 500; letter-spacing: .03em; line-height: 1.2;
+    padding: 3px 10px 4px; border-radius: 999px; border: 1px solid rgba(230, 182, 85, .6); background: rgba(42, 27, 51, .86); color: var(--paper); will-change: transform; }
+  .lab::after { content: ""; position: absolute; left: 50%; top: 100%; width: 1px; height: 9px; background: var(--gold); }
+  .lab:hover { background: var(--ink-2); }
+  .lab[aria-pressed="true"] { background: var(--gold); color: var(--night); border-color: var(--gold); }
+  .lab.locked { border-style: dashed; color: var(--muted); }
+  .tick { position: absolute; left: 0; top: 0; font-size: .74rem; color: var(--paper); opacity: .8; font-variant-numeric: tabular-nums; white-space: nowrap; will-change: transform; }
+
+  #panel { min-height: 0; overflow-y: auto; background: var(--ink); border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: 18px;
+    padding-block: 18px; padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); }
+  .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--night); border-radius: 10px; flex: none; }
+  .tabs button { border: 0; background: transparent; border-radius: 7px; padding: 8px 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; font-size: .82rem; color: var(--muted); }
+  .tabs button[aria-selected="true"] { background: var(--ink-2); color: var(--gold); }
+
+  #card { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  #card .eyebrow { font-size: .76rem; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+  #card h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 1.7rem; line-height: 1.15; text-wrap: balance; }
+  #card .tag { color: var(--rose); font-style: italic; margin-top: -4px; }
+  #card p { margin: 0; max-width: 62ch; }
+  #card dl { margin: 6px 0 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+  #card dt { font-size: .76rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
+  #card dd { margin: 0; }
+  #card .why { border-left: 2px solid var(--gold); padding-left: 12px; color: var(--paper); }
+  #card .why b { color: var(--gold); font-weight: 700; }
+
+  .listwrap { display: flex; flex-direction: column; gap: 8px; }
+  .listwrap h3 { margin: 0; font-size: .76rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  #list { display: flex; flex-wrap: wrap; gap: 6px; }
+  #list button { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 4px 12px; font-size: .9rem; white-space: nowrap; }
+  #list button:hover { border-color: var(--rose); }
+  #list button[aria-pressed="true"] { background: var(--gold); border-color: var(--gold); color: var(--night); font-weight: 700; }
+  #list button.locked { border-style: dashed; color: var(--muted); }
+  .hint { margin: 0; font-size: .86rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
+  #nogl { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--paper); }
+
+  @media (max-width: 780px) {
+    #app { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+    #panel { border-left: 0; border-top: 1px solid var(--line); max-height: 47vh; gap: 12px; padding-block: 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+    #card h2 { font-size: 1.4rem; }
+    #list { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+    #brand p { font-size: .72rem; }
+  }
+</style>
+
+<div id="app">
+  <div id="stage">
+    <canvas id="c" aria-label="Escena 3D de Malacandra"></canvas>
+    <div id="labels"></div>
+    <div id="brand">
+      <h1>Malacandra</h1>
+      <p>Hasta el capítulo 15, sin adelantar nada</p>
+    </div>
+    <div id="nogl" hidden>Este navegador no pudo iniciar WebGL, así que la escena 3D no se puede mostrar. Las fichas del panel siguen funcionando.</div>
+  </div>
+  <aside id="panel">
+    <div class="tabs" role="tablist" aria-label="Vista">
+      <button id="tab-world" role="tab" aria-selected="true">El mundo</button>
+      <button id="tab-gal" role="tab" aria-selected="false">Habitantes</button>
+    </div>
+    <section id="card" aria-live="polite"></section>
+    <div class="listwrap">
+      <h3 id="list-title">Lugares</h3>
+      <div id="list"></div>
+    </div>
+    <p class="hint" id="hint"></p>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (s) { return document.querySelector(s); };
+  var stage = $('#stage'), canvas = $('#c'), labelsEl = $('#labels');
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- Contenido (solo lo que Ransom sabe en el cap. 15) ---------- */
+  var INTRO = {
+    world: {
+      cap: 'Más allá del planeta silencioso', name: 'Un mundo de dos pisos', tag: 'Malacandra es el nombre que sus habitantes dan a Marte',
+      text: 'Arriba está el harandra: roca fría, casi sin aire. Abajo, los handramits: cañones profundos donde se juntan el aire, el agua tibia y toda la vida. Ransom aterriza en uno de ellos.',
+      why: ['La idea base', 'El planeta tiene poco aire, y el aire pesa. Se acumula en lo más hondo, igual que el agua. Por eso se vive abajo y arriba el cielo es casi negro.']
+    },
+    gal: {
+      cap: 'Los que habitan Malacandra', name: 'Hnau', tag: 'Toda criatura con razón',
+      text: 'Hay tres especies hnau: hrossa, séroni y pfifltriggi. Ninguna manda sobre las otras, y cada una hace lo que mejor sabe. Las figuras están a escala entre sí. La regla de la izquierda marca metros.',
+      why: ['La idea base', 'Con menos gravedad, un cuerpo puede ser mucho más alto y delgado sin romperse. Por eso todos aquí parecen estirados.']
+    }
+  };
+
+  var PLACES = [
+    { id: 'handramit', name: 'Handramit', tag: 'La tierra baja', cap: 'Capítulos 7 a 14',
+      text: 'Un cañón enorme cortado en la superficie. Suelo cubierto de una hierba rosada y blanda, agua azul y tibia, bosques púrpura. Subiendo por su pared, Ransom entiende que los handramits son los famosos canales que se ven desde la Tierra.',
+      facts: [['Aire', 'Denso y templado'], ['Agua', 'Azul, tibia, con olas altas y estrechas'], ['Viven aquí', 'Los hrossa']] },
+    { id: 'harandra', name: 'Harandra', tag: 'La tierra alta', cap: 'Capítulos 14 y 15',
+      text: 'La verdadera superficie del planeta. Roca desnuda, frío, y un aire tan delgado que un hombre no puede respirarlo. Augray le da oxígeno a Ransom para cruzarlo.',
+      why: ['Mira el cielo', 'Sube la cámara. Cuanto más alto, menos aire hay para dispersar la luz, así que el cielo se oscurece y aparecen estrellas en pleno día.'] },
+    { id: 'nave', name: 'La nave y la cabaña', tag: 'Donde empieza todo', cap: 'Capítulos 3 a 7',
+      text: 'Una esfera de metal. Weston y Devine aterrizan junto al agua, donde ya tenían una cabaña de un viaje anterior. Aquí Ransom ve a los sorns acercarse por primera vez, se suelta y huye.',
+      facts: [['Forma', 'Esfera, se vive sobre la cara interior'], ['Tripulación', 'Weston, Devine y Ransom a la fuerza']] },
+    { id: 'bosque', name: 'Bosque púrpura', tag: 'Tallos como torres', cap: 'Capítulos 7 y 8',
+      text: 'Tallos lisos y delgadísimos, del doble de alto que un olmo, con hojas enormes y casi transparentes solo en la copa. Ransom lo cruza solo en sus primeras horas, sin saber qué se puede comer ni beber.' },
+    { id: 'agujas', name: 'Agujas verde pálido', tag: 'Las montañas del borde', cap: 'Capítulos 7 y 8',
+      text: 'Las montañas no forman lomas. Son agujas que parecen a punto de caerse. Lo mismo pasa con las olas, las plantas y los cuerpos: todo es demasiado alto para su ancho.',
+      why: ['Por qué', 'Malacandra es más pequeño que la Tierra y tira de las cosas con menos fuerza. Lo que en la Tierra se derrumbaría, aquí se sostiene.'] },
+    { id: 'rosa', name: 'Masas rosadas', tag: 'Algo sobre la tierra alta', cap: 'Capítulo 7',
+      text: 'Más allá de las agujas, Ransom ve unas formas rosadas gigantescas, como nubes quietas o la copa de una coliflor roja. Todavía no sabe qué son.' },
+    { id: 'aldea', name: 'Aldea de los hrossa', tag: 'A la orilla del agua', cap: 'Capítulos 10 a 12',
+      text: 'Chozas con forma de colmena hechas de hojas rígidas. Los hrossa viven junto al agua: navegan, pescan, cultivan y componen poesía. Aquí Ransom pasa semanas aprendiendo su lengua con Hnohra y hablando con Hyoi.',
+      facts: [['En la escena', 'Hyoi con Ransom, Hnohra, Whin y la cachorra Hrikki, que habla con un eldil']] },
+    { id: 'hnakra', name: 'Aguas del hnakra', tag: 'La caza', cap: 'Capítulo 13',
+      text: 'Cazar al hnakra es el mayor honor de un hross. Ransom va en la barca con Hyoi y Whin y lo consiguen. Justo después, un disparo de Weston mata a Hyoi, y un eldil ordena a Ransom ir a ver a Oyarsa.' },
+    { id: 'rebano', name: 'Bestias amarillas', tag: 'El rebaño de los sorns', cap: 'Capítulo 8',
+      text: 'Animales altísimos, de pelaje amarillo pálido y cuello largo, que comen las copas del bosque. Ransom los encuentra en su huida y luego oye la voz de un sorn que los guía.' },
+    { id: 'torre', name: 'Torre de Augray', tag: 'Una cueva en la pared', cap: 'Capítulos 14 y 15',
+      text: 'El camino sube por la pared del handramit hasta casi la tierra alta. Arriba, a Ransom ya le falta el aire. Augray, un sorn, lo recibe junto al fuego, le da oxígeno y le deja mirar el cielo con su instrumento.',
+      facts: [['Estás aquí', 'Capítulo 15'], ['Camino', 'La línea clara que sube desde la aldea']] },
+    { id: 'thulcandra', name: 'Thulcandra', tag: 'El planeta silencioso', cap: 'Capítulos 11 y 15',
+      text: 'Los hrossa saben que existe un mundo del que nunca llega ninguna voz. Cuando Ransom les cuenta de dónde viene, concluyen que viene de allí. Es el punto azul que aparece cuando el cielo se oscurece.' },
+    { id: 'meldilorn', name: 'Hacia Meldilorn', tag: 'Todavía no has llegado', cap: 'Más adelante', locked: true,
+      text: 'Donde vive Oyarsa, quien gobierna Malacandra. Es el destino de Ransom, al otro lado de la tierra alta. Queda fuera del mapa hasta que avances en el libro.' }
+  ];
+
+  var FOLK = [
+    { id: 'hross', name: 'Hrossa', tag: 'Los poetas del agua', cap: 'Desde el capítulo 9',
+      text: 'Piensa en una nutria, una foca y un pingüino estirados hasta la altura de un hombre alto. Pelaje negro, espeso y lustroso. Patas muy cortas con pies palmeados, cola ancha como de castor, brazos fuertes con manos palmeadas. Cabeza redonda con bigotes largos, la frente más alta que la de una foca.',
+      facts: [['Altura', '1,8 a 2,1 m'], ['Viven', 'A la orilla del agua, en el handramit'], ['Hacen', 'Poesía, canto, barcas, pesca y la caza del hnakra'], ['Conoces a', 'Hyoi, tu amigo. Hnohra, el viejo de hocico gris que te enseña la lengua. Whin, compañero de caza. Hrikki, la cachorra.']] },
+    { id: 'sorn', name: 'Séroni', tag: 'Sorns: los pensadores de la altura', cap: 'Vistos en el 7, conocidos en el 15',
+      text: 'Dos o tres veces la altura de un hombre. Piernas larguísimas y finas, pecho abultado que parece pesar demasiado, cara larga y solemne con la nariz y la boca caídas. Un manto pálido que parece de plumas. Manos de siete dedos abiertas en abanico, pura piel sobre hueso. De lejos, Ransom ve un espectro o un ogro. De cerca, Augray resulta sereno.',
+      facts: [['Altura', '4 a 5,5 m'], ['Viven', 'En cuevas, al borde de la tierra alta'], ['Hacen', 'Ciencia, astronomía, pastoreo'], ['Voz', 'Grave, como un cuerno'], ['Conoces a', 'Augray']] },
+    { id: 'pfifl', name: 'Pfifltriggi', tag: 'Los artesanos', cap: 'Solo de oídas', locked: true,
+      text: 'La tercera especie hnau. Según los hrossa, cavan, funden lo que sacan y nadie los iguala haciendo cosas, sobre todo con la sangre del sol, que es como llaman al oro. Todavía no has visto ninguno, así que aquí solo hay una silueta.' },
+    { id: 'eldil', name: 'Eldila', tag: 'Los que casi no se ven', cap: 'Capítulos 11, 13 y 15',
+      text: 'No son hnau como los demás. Los hrossa los ven con facilidad. Ransom apenas nota un temblor de luz y oye una voz. Oyarsa, quien gobierna Malacandra, es el mayor de ellos. Aún no lo has visto.',
+      why: ['Cómo lo explica Augray', 'Lo más rápido que captan nuestros sentidos es la luz. El cuerpo de un eldil es un movimiento tan veloz como ella. Para nosotros es casi nada. Para él, una pared es como una nube.'] },
+    { id: 'hnakra', name: 'Hnakra', tag: 'El cazador del agua', cap: 'Capítulos 12 y 13',
+      text: 'Una bestia, no un hnau. Oscuro, largo y rapidísimo: llega como un torpedo dejando una estela de espuma, con mandíbulas que chasquean como las de un tiburón. Los hrossa lo cazan con lanzas desde sus barcas.',
+      why: ['Lo que dice Hyoi', 'El hnakra es su enemigo y también lo quieren. Sin peligro en los lagos, el bosque no sería tan luminoso ni el agua tan tibia.'] },
+    { id: 'ransom', name: 'Ransom', tag: 'Humano de Thulcandra', cap: 'Desde el capítulo 1',
+      text: 'Elwin Ransom, filólogo de Cambridge. Alto, de hombros algo caídos, entre treinta y cinco y cuarenta años, con la ropa gastada de quien anda de excursión a pie. Lo secuestran para entregarlo a los sorns.',
+      why: ['Por qué importa su oficio', 'Estudia lenguas. Cuando oye hablar a Hyoi, la curiosidad le gana al miedo. Aprender el idioma es lo que le abre este mundo.'] },
+    { id: 'wd', name: 'Weston y Devine', tag: 'Los secuestradores', cap: 'Desde el capítulo 1',
+      text: 'Weston, a la izquierda, es físico: corpulento, de voz fuerte, construyó la nave y cree que la humanidad debe extenderse a otros mundos cueste lo que cueste. Devine fue compañero de colegio de Ransom: delgado, burlón, y solo le interesa el oro.' }
+  ];
+
+  var card = $('#card'), list = $('#list');
+  var mode = 'world';
+  var sel = { world: null, gal: null };
+  function items() { return mode === 'world' ? PLACES : FOLK; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function renderCard() {
+    var it = null, id = sel[mode];
+    items().forEach(function (x) { if (x.id === id) it = x; });
+    if (!it) it = INTRO[mode];
+    var h = '<div class="eyebrow">' + esc(it.cap) + '</div><h2>' + esc(it.name) + '</h2><div class="tag">' + esc(it.tag) + '</div><p>' + esc(it.text) + '</p>';
+    if (it.why) h += '<p class="why"><b>' + esc(it.why[0]) + '.</b> ' + esc(it.why[1]) + '</p>';
+    if (it.facts) { h += '<dl>'; it.facts.forEach(function (f) { h += '<dt>' + esc(f[0]) + '</dt><dd>' + esc(f[1]) + '</dd>'; }); h += '</dl>'; }
+    card.innerHTML = h;
+  }
+  function renderList() {
+    $('#list-title').textContent = mode === 'world' ? 'Lugares' : 'Habitantes';
+    var h = '<button data-id="" aria-pressed="' + (sel[mode] ? 'false' : 'true') + '">Vista general</button>';
+    items().forEach(function (it) {
+      h += '<button data-id="' + it.id + '" class="' + (it.locked ? 'locked' : '') + '" aria-pressed="' + (sel[mode] === it.id ? 'true' : 'false') + '">' + esc(it.name) + '</button>';
+    });
+    list.innerHTML = h;
+    $('#hint').textContent = mode === 'world'
+      ? 'Arrastra para girar, rueda o pellizca para acercarte. Si subes la cámara, el cielo se oscurece.'
+      : 'Arrastra para girar alrededor de las figuras. Elige una para verla de cerca.';
+  }
+  var onSelect = function () {};
+  list.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    select(b.getAttribute('data-id') || null);
+  });
+  function select(id) {
+    sel[mode] = id;
+    renderCard(); renderList();
+    onSelect(id);
+  }
+  var setModeHook = function () {};
+  function setMode(m) {
+    if (m === mode) return;
+    setModeHook(m);
+    mode = m;
+    $('#tab-world').setAttribute('aria-selected', m === 'world');
+    $('#tab-gal').setAttribute('aria-selected', m === 'gal');
+    renderCard(); renderList();
+  }
+  $('#tab-world').addEventListener('click', function () { setMode('world'); });
+  $('#tab-gal').addEventListener('click', function () { setMode('gal'); });
+  renderCard(); renderList();
+
+  /* ---------- 3D ---------- */
+  var renderer;
+  try {
+    if (!window.THREE) throw new Error('three');
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+  } catch (err) { $('#nogl').hidden = false; return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  var D2R = Math.PI / 180;
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function sstep(a, b, x) { var t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); }
+  var seed = 20151938;
+  function rng() { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+  function hash(i, j) { var n = Math.sin(i * 127.1 + j * 311.7) * 43758.5453; return n - Math.floor(n); }
+  function vnoise(x, y) {
+    var i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j;
+    var u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+    return lerp(lerp(hash(i, j), hash(i + 1, j), u), lerp(hash(i, j + 1), hash(i + 1, j + 1), u), v);
+  }
+  function fbm(x, y) { return 0.5 * vnoise(x, y) + 0.25 * vnoise(x * 2.1, y * 2.1) + 0.125 * vnoise(x * 4.3, y * 4.3) + 0.0625 * vnoise(x * 8.7, y * 8.7); }
+
+  /* --- Relieve: meseta (harandra) cortada por un cañón (handramit) con río --- */
+  var SIZE = 220, HALF = 110, LAKE_Z = -45;
+  function lake(z) { return Math.exp(-Math.pow((z - LAKE_Z) / 16, 2)); }
+  function canyonX(z) { return 14 * Math.sin(z * 0.026) + 6 * Math.sin(z * 0.067 + 1.3); }
+  function canyonW(z) { return 30 + 4 * Math.sin(z * 0.045 + 0.6) + 8 * lake(z); }
+  function riverX(z) { return canyonX(z) + 4 * Math.sin(z * 0.09 + 2.0); }
+  function riverW(z) { return 4.5 + 9 * lake(z); }
+  function eastX(z, off) { return riverX(z) + riverW(z) * 1.5 + off; }
+  function westX(z, off) { return riverX(z) - riverW(z) * 1.5 - off; }
+  var AZ = 42, AX = canyonX(AZ) + canyonW(AZ) + 12;
+  function terr(x, z) {
+    var cx = canyonX(z), w = canyonW(z), d = Math.abs(x - cx);
+    var top = 13 + 5 * fbm(x * 0.045 + 10, z * 0.045 + 10) + 1.2 * fbm(x * 0.2, z * 0.2);
+    var ma = Math.exp(-((x - AX) * (x - AX) + (z - AZ) * (z - AZ)) / (2 * 10 * 10));
+    top += 26 * ma;
+    var rd = Math.abs(x - riverX(z)), rw = riverW(z);
+    var floor = -1.7 + 3.0 * sstep(rw * 0.55, rw * 1.5, rd) + 0.5 * fbm(x * 0.15, z * 0.15);
+    var t = sstep(w * 0.62, w, d + 4 * (fbm(x * 0.07 + 5, z * 0.07 + 3) - 0.47));
+    t = t * t * (3 - 2 * t);
+    return { y: floor + (top - floor) * t, t: t, ma: ma };
+  }
+  function gy(x, z) { return Math.max(terr(x, z).y, 0); }
+
+  var world = new THREE.Scene();
+  var skyLow = new THREE.Color(0xa9cdea), skyHigh = new THREE.Color(0x090a18), skyNow = new THREE.Color();
+  world.background = skyLow.clone();
+  world.fog = new THREE.Fog(0xa9cdea, 320, 1100);
+  world.add(new THREE.HemisphereLight(0xd6e6ff, 0xb98a8a, 0.48));
+  var sun = new THREE.DirectionalLight(0xfff0dc, 0.72);
+  sun.position.set(90, 140, 60); sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.left = -165; sun.shadow.camera.right = 165; sun.shadow.camera.top = 165; sun.shadow.camera.bottom = -165;
+  sun.shadow.camera.near = 20; sun.shadow.camera.far = 420; sun.shadow.bias = -0.0006;
+  world.add(sun);
+
+  (function buildTerrain() {
+    var SEG = 220;
+    var g = new THREE.PlaneGeometry(SIZE, SIZE, SEG, SEG); g.rotateX(-Math.PI / 2);
+    var pos = g.attributes.position, col = new Float32Array(pos.count * 3);
+    var pinkA = new THREE.Color(0xe392aa), pinkB = new THREE.Color(0xf0bcc8), wet = new THREE.Color(0xa890ad),
+      wallA = new THREE.Color(0x84a690), wallB = new THREE.Color(0xb9d1b7), topA = new THREE.Color(0xb1644a), topB = new THREE.Color(0xdba473),
+      peak = new THREE.Color(0xbcd2ba), a = new THREE.Color(), b = new THREE.Color(), c = new THREE.Color(), out = new THREE.Color();
+    for (var i = 0; i < pos.count; i++) {
+      var x = pos.getX(i), z = pos.getZ(i);
+      if (Math.abs(x) > HALF - 0.01 || Math.abs(z) > HALF - 0.01) { pos.setY(i, -6); out.set(0x4a3040); }
+      else {
+        var info = terr(x, z); pos.setY(i, info.y);
+        var n = Math.min(1, fbm(x * 0.25 + 3, z * 0.25 + 7) / 0.9);
+        a.copy(pinkA).lerp(pinkB, n).lerp(wet, 1 - sstep(-0.7, 0.3, info.y));
+        b.copy(wallA).lerp(wallB, n);
+        c.copy(topA).lerp(topB, n).lerp(peak, sstep(0.2, 0.6, info.ma));
+        out.copy(a).lerp(b, sstep(0.03, 0.14, info.t)).lerp(c, sstep(0.86, 0.98, info.t));
+      }
+      col[i * 3] = out.r; col[i * 3 + 1] = out.g; col[i * 3 + 2] = out.b;
+    }
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    g.computeVertexNormals();
+    var m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 }));
+    m.receiveShadow = true; m.castShadow = true; world.add(m);
+    var wg = new THREE.PlaneGeometry(SIZE - 1.2, SIZE - 1.2); wg.rotateX(-Math.PI / 2);
+    var water = new THREE.Mesh(wg, new THREE.MeshStandardMaterial({ color: 0x2f76d8, roughness: 0.12, metalness: 0.25, transparent: true, opacity: 0.86 }));
+    water.receiveShadow = true; world.add(water);
+  })();
+
+  /* --- Piezas reutilizables --- */
+  var SPH = new THREE.SphereGeometry(1, 20, 14), CONE = new THREE.ConeGeometry(1, 1, 12);
+  function mat(color, rough, metal, extra) {
+    var o = { color: color, roughness: rough === undefined ? 0.8 : rough, metalness: metal || 0 };
+    if (extra) for (var k in extra) o[k] = extra[k];
+    return new THREE.MeshStandardMaterial(o);
+  }
+  function part(g, geo, m, p, s, r) {
+    var o = new THREE.Mesh(geo, m);
+    if (p) o.position.set(p[0], p[1], p[2]);
+    if (s) o.scale.set(s[0], s[1], s[2]);
+    if (r) o.rotation.set(r[0], r[1], r[2]);
+    o.castShadow = true; g.add(o); return o;
+  }
+  var UP = new THREE.Vector3(0, 1, 0);
+  function limb(g, m, a, b, ra, rb) {
+    var A = new THREE.Vector3(a[0], a[1], a[2]), B = new THREE.Vector3(b[0], b[1], b[2]);
+    var o = new THREE.Mesh(new THREE.CylinderGeometry(rb, ra, A.distanceTo(B), 10), m);
+    o.position.copy(A).add(B).multiplyScalar(0.5);
+    o.quaternion.setFromUnitVectors(UP, B.clone().sub(A).normalize());
+    o.castShadow = true; g.add(o); return o;
+  }
+  function lathe(g, m, pts, seg) {
+    var o = new THREE.Mesh(new THREE.LatheGeometry(pts.map(function (p) { return new THREE.Vector2(p[0], p[1]); }), seg || 18), m);
+    o.castShadow = true; g.add(o); return o;
+  }
+  var DARK = new THREE.MeshStandardMaterial({ color: 0x0c0a10, roughness: 0.4 });
+
+  /* Hross: nutria + foca + pinguino, negro lustroso, muy alto y delgado */
+  function makeHross(opt) {
+    opt = opt || {};
+    var g = new THREE.Group();
+    var fur = mat(opt.color || 0x15151c, 0.26, 0.3), muz = mat(opt.muzzle || 0x292932, 0.5), eye = mat(0xd09a3a, 0.2), whisk = mat(0xd8d8e0, 0.6), tan = mat(0xa9824e, 0.8);
+    lathe(g, fur, [[0.001, 0.22], [0.2, 0.25], [0.3, 0.55], [0.31, 0.95], [0.27, 1.35], [0.2, 1.62], [0.16, 1.76], [0.001, 1.8]]);
+    part(g, SPH, fur, [0, 1.9, 0.03], [0.23, 0.25, 0.25]);
+    part(g, SPH, muz, [0, 1.84, 0.2], [0.13, 0.1, 0.12]);
+    part(g, SPH, DARK, [0, 1.87, 0.32], [0.035, 0.03, 0.03]);
+    [-1, 1].forEach(function (s) {
+      part(g, SPH, eye, [s * 0.1, 1.97, 0.21], [0.034, 0.034, 0.03]);
+      part(g, SPH, DARK, [s * 0.1, 1.97, 0.235], [0.016, 0.02, 0.012]);
+      part(g, SPH, fur, [s * 0.19, 2.09, -0.02], [0.05, 0.06, 0.03]);
+      for (var k = -1; k <= 1; k++) limb(g, whisk, [s * 0.08, 1.83, 0.27], [s * 0.33, 1.81 + k * 0.07, 0.33], 0.006, 0.002);
+      limb(g, fur, [s * 0.14, 0.34, 0], [s * 0.15, 0.05, 0.02], 0.1, 0.08);
+      part(g, SPH, fur, [s * 0.16, 0.04, 0.13], [0.14, 0.04, 0.23]);
+      limb(g, fur, [s * 0.27, 1.45, 0.02], [s * 0.37, 0.96, 0.2], 0.085, 0.06);
+      part(g, SPH, fur, [s * 0.38, 0.9, 0.24], [0.09, 0.04, 0.12]);
+    });
+    limb(g, fur, [0, 0.45, -0.18], [0, 0.12, -0.42], 0.17, 0.14);
+    part(g, SPH, fur, [0, 0.07, -0.62], [0.21, 0.05, 0.42]);
+    var belt = new THREE.Mesh(new THREE.TorusGeometry(0.315, 0.025, 8, 24), tan); belt.rotation.x = Math.PI / 2; belt.position.y = 0.95; g.add(belt);
+    part(g, new THREE.BoxGeometry(0.13, 0.15, 0.07), tan, [0.19, 0.85, 0.25]);
+    if (opt.spear) limb(g, tan, [0.42, 0.1, 0.3], [0.36, 2.9, 0.2], 0.018, 0.012);
+    return g;
+  }
+
+  /* Sorn: 5 m, piernas de zancudo, pecho abultado, manto plumoso palido, cara larga */
+  function makeSorn() {
+    var g = new THREE.Group();
+    var coat = mat(0xf0e8d7, 1), skin = mat(0xe6d7bf, 0.75), hand = mat(0xead2c0, 0.6, 0, { transparent: true, opacity: 0.88 });
+    [-1, 1].forEach(function (s) {
+      limb(g, coat, [s * 0.2, 2.95, 0], [s * 0.24, 1.5, 0.06], 0.085, 0.06);
+      limb(g, skin, [s * 0.24, 1.5, 0.06], [s * 0.22, 0.06, 0], 0.055, 0.045);
+      part(g, SPH, skin, [s * 0.24, 1.5, 0.06], [0.075, 0.075, 0.075]);
+      part(g, SPH, skin, [s * 0.22, 0.04, 0.14], [0.09, 0.04, 0.25]);
+      var sh = [s * 0.5, 4.12, 0], el = [s * 0.64, 3.2, 0.05], wr = [s * 0.52, 2.45, 0.3];
+      limb(g, coat, sh, el, 0.075, 0.05); limb(g, skin, el, wr, 0.045, 0.035);
+      for (var k = 0; k < 7; k++) { var a = (k - 3) * 0.21; limb(g, hand, wr, [wr[0] + Math.sin(a) * 0.3, wr[1] - Math.cos(a) * 0.32, wr[2] + 0.04], 0.014, 0.006); }
+      part(g, SPH, DARK, [s * 0.08, 5.07, 0.235], [0.028, 0.018, 0.02]);
+      limb(g, DARK, [s * 0.05, 4.69, 0.215], [s * 0.1, 4.64, 0.18], 0.008, 0.006);
+    });
+    part(g, SPH, coat, [0, 2.98, 0], [0.3, 0.2, 0.24]);
+    var torso = lathe(g, coat, [[0.001, 2.9], [0.22, 2.95], [0.3, 3.3], [0.5, 3.8], [0.52, 4.05], [0.4, 4.3], [0.16, 4.42], [0.12, 4.5]], 20);
+    torso.scale.z = 1.14; torso.position.z = 0.05;
+    function ruff(y, r, n, len) { for (var i = 0; i < n; i++) { var a = i / n * Math.PI * 2; part(g, CONE, coat, [Math.sin(a) * r, y, Math.cos(a) * r * 1.1 + 0.05], [0.075, len, 0.075], [Math.PI + Math.cos(a) * 0.25, 0, -Math.sin(a) * 0.25]); } }
+    ruff(3.12, 0.27, 14, 0.5); ruff(3.62, 0.44, 18, 0.45); ruff(4.16, 0.44, 18, 0.4);
+    limb(g, skin, [0, 4.45, 0.02], [0, 4.66, 0.05], 0.1, 0.08);
+    part(g, SPH, skin, [0, 4.96, 0.06], [0.19, 0.38, 0.22]);
+    part(g, CONE, coat, [0, 5.4, 0.03], [0.15, 0.42, 0.17]);
+    limb(g, skin, [0, 5.03, 0.26], [0, 4.74, 0.34], 0.045, 0.028);
+    part(g, SPH, DARK, [0, 4.69, 0.215], [0.06, 0.011, 0.02]);
+    part(g, CONE, coat, [0, 4.5, 0.15], [0.085, 0.3, 0.075], [Math.PI, 0, 0]);
+    return g;
+  }
+
+  function makeHuman(o) {
+    var g = new THREE.Group();
+    var coat = mat(o.coat), trou = mat(o.trou), skin = mat(0xe2b08c, 0.7), hair = mat(o.hair, 0.9);
+    var w = o.build || 1;
+    [-1, 1].forEach(function (s) {
+      limb(g, trou, [s * 0.1 * w, 0.92, 0], [s * 0.11 * w, 0.06, 0], 0.085 * w, 0.065);
+      part(g, SPH, DARK, [s * 0.11 * w, 0.04, 0.06], [0.07, 0.045, 0.14]);
+      limb(g, coat, [s * 0.23 * w, 1.45, 0], [s * 0.28 * w, 0.95, 0.05], 0.062 * w, 0.05);
+      part(g, SPH, skin, [s * 0.28 * w, 0.9, 0.06], [0.05, 0.06, 0.05]);
+    });
+    var t = lathe(g, coat, [[0.001, 0.86], [0.17, 0.88], [0.19, 1.2], [0.22, 1.45], [0.13, 1.56], [0.001, 1.58]], 14);
+    t.scale.set(w, 1, 0.78 * w);
+    limb(g, skin, [0, 1.55, 0], [0, 1.66, 0], 0.05, 0.05);
+    part(g, SPH, skin, [0, 1.73, 0], [0.105, 0.125, 0.115]);
+    part(g, SPH, hair, [0, 1.775, -0.025], [0.112, 0.105, 0.115]);
+    if (o.beard) part(g, SPH, hair, [0, 1.67, 0.05], [0.085, 0.07, 0.075]);
+    g.scale.setScalar((o.h || 1.8) / 1.8);
+    return g;
+  }
+  var RANSOM = { coat: 0x7a6a4c, trou: 0x6b6f76, hair: 0x5a4632, h: 1.84, build: 0.96 };
+  var WESTON = { coat: 0x3b3f4a, trou: 0x2c2f36, hair: 0x2a2320, h: 1.8, build: 1.3 };
+  var DEVINE = { coat: 0xb9ad94, trou: 0x8b8166, hair: 0x9a7a45, h: 1.76, build: 0.86 };
+
+  function makeHnakra() {
+    var g = new THREE.Group();
+    var hide = mat(0x0c1217, 0.2, 0.35), tooth = mat(0xf2efe2, 0.4), eye = mat(0xd8d06a, 0.3, 0, { emissive: 0x554d10 });
+    part(g, SPH, hide, [0, 0.5, 0], [0.55, 0.5, 2.6]);
+    part(g, CONE, hide, [0, 0.64, 2.75], [0.36, 1.4, 0.16], [Math.PI / 2 - 0.2, 0, 0]);
+    part(g, CONE, hide, [0, 0.3, 2.65], [0.3, 1.2, 0.12], [Math.PI / 2 + 0.28, 0, 0]);
+    for (var i = 0; i < 6; i++) [-1, 1].forEach(function (s) {
+      var f = i / 5, zz = 2.35 + f * 0.85, xx = s * (0.24 - f * 0.17);
+      part(g, CONE, tooth, [xx, 0.66 - f * 0.13, zz], [0.03, 0.12, 0.03], [Math.PI, 0, 0]);
+      part(g, CONE, tooth, [xx * 0.85, 0.3 - f * 0.17, zz - 0.05], [0.026, 0.1, 0.026]);
+    });
+    [-1, 1].forEach(function (s) {
+      part(g, SPH, eye, [s * 0.3, 0.78, 1.75], [0.05, 0.04, 0.06]);
+      part(g, SPH, hide, [s * 0.6, 0.35, 0.6], [0.4, 0.05, 0.28], [0, s * 0.5, s * -0.35]);
+    });
+    part(g, SPH, hide, [0, 1.0, -0.2], [0.05, 0.3, 0.75]);
+    part(g, CONE, hide, [0, 0.5, -3.1], [0.32, 1.5, 0.3], [-Math.PI / 2, 0, 0]);
+    part(g, SPH, hide, [0, 0.55, -3.9], [0.04, 0.55, 0.32]);
+    return g;
+  }
+
+  var eldilMats = [];
+  function makeEldil() {
+    var g = new THREE.Group();
+    function col(r, h, op) {
+      var m = new THREE.MeshBasicMaterial({ color: 0xfff3cf, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
+      m.userData.base = op; eldilMats.push(m);
+      var o = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 0.7, h, 20, 1, true), m); o.position.y = h / 2 + 0.2; g.add(o);
+    }
+    col(0.34, 3.0, 0.07); col(0.18, 3.2, 0.12); col(0.06, 3.3, 0.22);
+    var n = 46, p = new Float32Array(n * 3);
+    for (var i = 0; i < n; i++) { var a = rng() * 6.283, r = rng() * 0.3; p[i * 3] = Math.cos(a) * r; p[i * 3 + 1] = 0.3 + rng() * 3; p[i * 3 + 2] = Math.sin(a) * r; }
+    var pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.BufferAttribute(p, 3));
+    var pm = new THREE.PointsMaterial({ color: 0xfff6dc, size: 0.06, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+    pm.userData.base = 0.8; eldilMats.push(pm);
+    var pts = new THREE.Points(pg, pm); g.add(pts); g.userData.spin = pts;
+    return g;
+  }
+
+  function makePfifl() {
+    var g = new THREE.Group(), m = new THREE.MeshBasicMaterial({ color: 0x18101d });
+    part(g, SPH, m, [0, 0.42, 0], [0.36, 0.42, 0.4]).castShadow = true;
+    part(g, SPH, m, [0, 0.98, 0.06], [0.2, 0.2, 0.22]);
+    return g;
+  }
+
+  function makeBeast() {
+    var g = new THREE.Group(), m = mat(0xeadb8c, 0.95), d = mat(0xb9a558, 0.9);
+    part(g, SPH, m, [0, 3.4, 0], [0.5, 0.55, 1.1]);
+    [-1, 1].forEach(function (s) { [-1, 1].forEach(function (f) { limb(g, m, [s * 0.3, 3.2, f * 0.72], [s * 0.32, 0.05, f * 0.78], 0.1, 0.055); part(g, SPH, d, [s * 0.32, 0.05, f * 0.78], [0.08, 0.05, 0.1]); }); });
+    limb(g, m, [0, 3.65, 0.85], [0, 5.65, 1.5], 0.26, 0.12);
+    part(g, SPH, m, [0, 5.78, 1.68], [0.16, 0.16, 0.32]);
+    [-1, 1].forEach(function (s) { part(g, SPH, d, [s * 0.14, 5.93, 1.55], [0.04, 0.09, 0.03]); part(g, SPH, DARK, [s * 0.13, 5.82, 1.8], [0.025, 0.025, 0.025]); });
+    limb(g, d, [0, 3.5, -1.05], [0, 2.5, -1.3], 0.04, 0.02);
+    return g;
+  }
+
+  function makeHut() {
+    var g = new THREE.Group(), m = mat(0x8a709a, 1, 0, { flatShading: true }), rib = mat(0x6a5478, 1);
+    lathe(g, m, [[1.7, 0], [1.78, 0.6], [1.5, 1.5], [0.95, 2.2], [0.3, 2.6], [0.001, 2.68]], 12);
+    for (var i = 0; i < 4; i++) { var t = new THREE.Mesh(new THREE.TorusGeometry([1.76, 1.6, 1.25, 0.7][i], 0.045, 6, 20), rib); t.rotation.x = Math.PI / 2; t.position.y = [0.5, 1.2, 1.85, 2.38][i]; g.add(t); }
+    part(g, SPH, DARK, [0, 0.55, 1.62], [0.5, 0.75, 0.25]);
+    return g;
+  }
+  function makeBoat() {
+    var g = new THREE.Group();
+    part(g, SPH, mat(0x5b3d33, 0.8), [0, 0.12, 0], [0.6, 0.32, 2.6]);
+    part(g, SPH, mat(0x2e1f1c, 0.9), [0, 0.3, 0], [0.47, 0.12, 2.3]);
+    return g;
+  }
+  function makeShip() {
+    var g = new THREE.Group(), metal = mat(0xcdd2dc, 0.3, 0.25), seam = mat(0x7d828d, 0.5, 0.2);
+    var s = new THREE.Mesh(new THREE.SphereGeometry(4.5, 32, 22), metal); s.position.y = 4.1; s.castShadow = true; g.add(s);
+    [0, 0.9, -0.9].forEach(function (a) { var t = new THREE.Mesh(new THREE.TorusGeometry(4.52, 0.05, 6, 48), seam); t.position.y = 4.1; t.rotation.set(Math.PI / 2 + a, 0, a * 0.5); g.add(t); });
+    part(g, SPH, DARK, [3.1, 1.6, 2.2], [0.7, 0.95, 0.5], [0.5, 0.95, 0]);
+    return g;
+  }
+  function makeCabin() {
+    var g = new THREE.Group();
+    part(g, new THREE.BoxGeometry(4.2, 2.2, 3), mat(0x9a917f, 0.9), [0, 1.1, 0]);
+    var roof = part(g, new THREE.ConeGeometry(3.1, 1.2, 4), mat(0x6c6a70, 0.6, 0.4), [0, 2.8, 0], [1, 1, 0.75], [0, Math.PI / 4, 0]);
+    roof.castShadow = true;
+    part(g, new THREE.BoxGeometry(0.8, 1.6, 0.1), DARK, [0.6, 0.8, 1.5]);
+    return g;
+  }
+
+  var FIG = 1.25;
+  function put(scene, obj, x, y, z, ry, s) { obj.position.set(x, y, z); obj.rotation.y = ry || 0; obj.scale.multiplyScalar(s === undefined ? FIG : s); scene.add(obj); return obj; }
+  function onGround(obj, x, z, ry, s, lift) { return put(world, obj, x, gy(x, z) + (lift || 0), z, ry, s); }
+
+  /* --- Torre de Augray: saliente con cueva en la pared este --- */
+  var caveX = AX, caveY = 27;
+  for (var sx = 0; sx < 30; sx += 0.5) { var yy = terr(AX - sx, AZ).y; if (yy <= 25) { caveX = AX - sx; caveY = yy; break; } }
+  var rock = mat(0xa9c4ac, 1, 0, { flatShading: true });
+  var ledge = new THREE.Mesh(new THREE.CylinderGeometry(4.6, 5.4, 8, 9), rock); ledge.position.set(caveX - 2.6, caveY - 4, AZ); ledge.castShadow = true; ledge.receiveShadow = true; world.add(ledge);
+  var mouth = new THREE.Mesh(SPH, new THREE.MeshBasicMaterial({ color: 0x120a12 })); mouth.position.set(caveX + 1.6, caveY + 2.6, AZ); mouth.scale.set(2.8, 4.8, 3.2); world.add(mouth);
+  var fire = new THREE.Mesh(SPH, new THREE.MeshBasicMaterial({ color: 0xffa040 })); fire.position.set(caveX - 0.4, caveY + 0.45, AZ - 0.6); fire.scale.set(0.45, 0.55, 0.45); world.add(fire);
+  var fireLight = new THREE.PointLight(0xff9a40, 1.5, 18); fireLight.position.set(caveX - 1.2, caveY + 1.6, AZ - 0.4); world.add(fireLight);
+  put(world, makeSorn(), caveX - 4.2, caveY, AZ + 2.2, -Math.PI / 2 - 0.3);
+  put(world, makeHuman(RANSOM), caveX - 5.6, caveY, AZ + 0.4, Math.PI / 2 + 0.6);
+
+  /* --- Lugares en el suelo del cañón --- */
+  var VZ = 8, SHIP_Z = -88, HERD_Z = 75;
+  var vx = eastX(VZ, 4.5), shipX = westX(SHIP_Z, 9.5), herdX = westX(HERD_Z, 9);
+  var clear = [{ x: eastX(VZ, 7), z: VZ, r: 16 }, { x: shipX, z: SHIP_Z + 3, r: 14 }, { x: herdX, z: HERD_Z, r: 6 }];
+
+  var lakeX = riverX(LAKE_Z);
+  // Vistas a ras de suelo: se despeja el bosque entre la camara y lo que se mira
+  var FV = {
+    nave: { p: new THREE.Vector3(shipX, 5, SHIP_Z + 3), lift: 6, v: { d: 38, az: 112, el: 17 }, r: 8 },
+    aldea: { p: new THREE.Vector3(eastX(VZ, 6), 2, VZ), lift: 6, v: { d: 30, az: 205, el: 17 }, r: 6 },
+    hnakra: { p: new THREE.Vector3(lakeX, 0.5, LAKE_Z), lift: 5, v: { d: 36, az: -15, el: 24 }, r: 8 },
+    rebano: { p: new THREE.Vector3(herdX, 4, HERD_Z), lift: 8, v: { d: 34, az: 150, el: 12 }, r: 5 }
+  };
+  Object.keys(FV).forEach(function (k) {
+    var s = FV[k], c = viewPos(s.p, s.v);
+    for (var t = 0.15; t <= 1.001; t += 0.17) clear.push({ x: lerp(s.p.x, c.x, t), z: lerp(s.p.z, c.z, t), r: s.r });
+  });
+
+  var roadPts = [];
+  (function () {
+    var v0 = { x: eastX(VZ + 8, 7), z: VZ + 8 }, base = { x: canyonX(34) + canyonW(34) * 0.6, z: 34 }, end = { x: caveX - 6.8, z: AZ }, i, t, x, z;
+    for (i = 0; i <= 14; i++) { t = i / 14; x = lerp(v0.x, base.x, t); z = lerp(v0.z, base.z, t); roadPts.push(new THREE.Vector3(x, gy(x, z) + 0.25, z)); if (i % 2 === 0) clear.push({ x: x, z: z, r: 3 }); }
+    for (i = 1; i <= 70; i++) { t = i / 70; x = lerp(base.x, end.x, t); z = lerp(base.z, end.z, t) + 7 * Math.sin(t * Math.PI * 4) * (1 - t); roadPts.push(new THREE.Vector3(x, gy(x, z) + 0.25, z)); }
+    roadPts.push(new THREE.Vector3(caveX - 5.5, caveY + 0.2, AZ));
+    var road = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(roadPts), 420, 0.32, 5, false), mat(0xf6e6c2, 1));
+    road.receiveShadow = true; world.add(road);
+    var dotM = mat(0xf6e6c2, 1), sx0 = AX + 15, sz0 = AZ + 5, ex = HALF - 3, ez = AZ + 18, n = Math.floor((ex - sx0) / 3.6);
+    for (i = 0; i <= n; i++) { t = i / n; x = lerp(sx0, ex, t); z = lerp(sz0, ez, t) + 2 * Math.sin(t * 7); var d = new THREE.Mesh(SPH, dotM); d.position.set(x, gy(x, z) + 0.2, z); d.scale.setScalar(0.38); world.add(d); }
+  })();
+
+  // Aldea
+  [-2, -1, 0, 1, 2].forEach(function (k) { var z = VZ + k * 5.6; onGround(makeHut(), eastX(z, 10.5 + (k % 2 ? 1.5 : 0)), z, -Math.PI / 2 + (rng() - 0.5) * 0.5, 1.3); });
+  onGround(makeHross(), vx, VZ, -2.2);
+  onGround(makeHuman(RANSOM), eastX(VZ - 1.9, 3.4), VZ - 1.9, 0.6);
+  onGround(makeHross({ muzzle: 0x9a9aa4, color: 0x1d1d24 }), eastX(VZ + 5.5, 6), VZ + 5.5, -1.5);
+  onGround(makeHross(), eastX(VZ - 7, 4.5), VZ - 7, -0.6);
+  onGround(makeHross(), eastX(VZ + 10, 5), VZ + 10, -2.6, FIG * 0.5);
+  onGround(makeEldil(), eastX(VZ + 11.8, 4.6), VZ + 11.8, 0, 1.3);
+  onGround(makeBoat(), eastX(VZ + 2, -1.2), VZ + 2, 0.12, FIG, 0.05);
+  onGround(makeBoat(), eastX(VZ - 5, -1.5), VZ - 5, -0.2, FIG, 0.05);
+
+  // Nave, cabaña y los dos secuestradores
+  onGround(makeShip(), shipX, SHIP_Z, 0.4, 1);
+  onGround(makeCabin(), westX(SHIP_Z + 10, 7.5), SHIP_Z + 10, 1.2, 1);
+  onGround(makeHuman(WESTON), westX(SHIP_Z + 5, 3.5), SHIP_Z + 5, 1.4);
+  onGround(makeHuman(DEVINE), westX(SHIP_Z + 6.6, 3.2), SHIP_Z + 6.6, 1.9);
+
+  // Caza del hnakra
+  var hunt = new THREE.Group(); hunt.position.set(lakeX + 7.5, 0.02, LAKE_Z + 7); hunt.rotation.y = -2.2;
+  hunt.add(makeBoat());
+  var h1 = makeHross({ spear: true }); h1.position.set(0, 0.25, 1.3); hunt.add(h1);
+  var h2 = makeHross({ spear: true }); h2.position.set(0, 0.25, -1.4); h2.rotation.y = 0.4; hunt.add(h2);
+  var r1 = makeHuman(RANSOM); r1.position.set(0, 0.25, 0); hunt.add(r1);
+  hunt.scale.setScalar(FIG); world.add(hunt);
+  var hnakraPivot = new THREE.Group(); hnakraPivot.position.set(lakeX - 2.5, -0.38, LAKE_Z - 1);
+  var hk = makeHnakra(); hk.position.set(6.5, 0, 0); hk.scale.setScalar(FIG); hnakraPivot.add(hk);
+  var foamM = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.75 });
+  for (var fi = 0; fi < 16; fi++) { var fa = 0.25 + fi * 0.13, f = new THREE.Mesh(SPH, foamM); f.position.set(Math.cos(fa) * 6.5, 0.4, Math.sin(fa) * 6.5); f.scale.set(0.5 - fi * 0.022, 0.06, 0.5 - fi * 0.022); hnakraPivot.add(f); }
+  world.add(hnakraPivot);
+  onGround(makeEldil(), lakeX + 14, LAKE_Z + 12, 0, 1.3);
+
+  // Rebaño
+  onGround(makeSorn(), herdX, HERD_Z, 0.8);
+  onGround(makeBeast(), westX(HERD_Z - 6, 11), HERD_Z - 6, 0.5);
+  onGround(makeBeast(), westX(HERD_Z + 5, 12.5), HERD_Z + 5, 2.1);
+  onGround(makeBeast(), westX(HERD_Z + 1, 15), HERD_Z + 1, -0.6, FIG * 0.85);
+
+  /* --- Agujas, bosque y masas rosadas (instanciados) --- */
+  var dummy = new THREE.Object3D(), tc = new THREE.Color();
+  function instanced(geo, material, list, fn) {
+    var m = new THREE.InstancedMesh(geo, material, list.length);
+    list.forEach(function (it, i) { fn(it, i, m); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); });
+    m.castShadow = true; m.receiveShadow = true; world.add(m); return m;
+  }
+  var spires = [], tallest = null;
+  (function () {
+    function add(x, z, h, r) {
+      if (Math.abs(x) > HALF - 4 || Math.abs(z) > HALF - 3) return;
+      if ((x - AX) * (x - AX) + (z - AZ) * (z - AZ) < 19 * 19) return;
+      var s = { x: x, z: z, y: terr(x, z).y - 1.5, h: h, r: r }; spires.push(s);
+      if (x < canyonX(z) && z > -30 && z < 25 && (!tallest || s.y + s.h > tallest.y + tallest.h)) tallest = s;
+    }
+    for (var z = -106; z <= 106; z += 2.4 + rng() * 2.6) [-1, 1].forEach(function (side) {
+      if (rng() < 0.15) return;
+      var h = 9 + rng() * rng() * 36;
+      add(canyonX(z) + side * (canyonW(z) + 1 + rng() * 9), z, h, 1.1 + rng() * 1.3 + h * 0.035);
+    });
+    for (var i = 0; i < 70; i++) { var zz = -104 + rng() * 208, sd = rng() < 0.5 ? -1 : 1; add(canyonX(zz) + sd * (canyonW(zz) + 10 + rng() * 18), zz, 4 + rng() * 11, 0.9 + rng() * 1.2); }
+    var geo = new THREE.ConeGeometry(1, 1, 6); geo.translate(0, 0.5, 0);
+    instanced(geo, mat(0xffffff, 0.9, 0, { flatShading: true }), spires, function (s, i, m) {
+      dummy.position.set(s.x, s.y, s.z); dummy.rotation.set((rng() - 0.5) * 0.08, rng() * 6, (rng() - 0.5) * 0.08); dummy.scale.set(s.r, s.h + 1.5, s.r);
+      m.setColorAt(i, tc.setHSL(0.36 + rng() * 0.06, 0.16 + rng() * 0.12, 0.66 + rng() * 0.14));
+    });
+  })();
+
+  var trees = [];
+  (function () {
+    for (var tries = 0; tries < 9000 && trees.length < 760; tries++) {
+      var z = -106 + rng() * 212, x = canyonX(z) + (rng() * 2 - 1) * canyonW(z) * 0.68, info = terr(x, z);
+      if (info.t > 0.06 || info.y < 0.55) continue;
+      if (fbm(x * 0.06 + 40, z * 0.06 + 40) < 0.4) continue;
+      var blocked = false; for (var k = 0; k < clear.length; k++) { var c = clear[k]; if ((x - c.x) * (x - c.x) + (z - c.z) * (z - c.z) < c.r * c.r) { blocked = true; break; } }
+      if (blocked) continue;
+      trees.push({ x: x, y: info.y, z: z, h: 12 + rng() * 10 });
+    }
+    var sg = new THREE.CylinderGeometry(0.1, 0.24, 1, 5); sg.translate(0, 0.5, 0);
+    instanced(sg, mat(0x7650a6, 0.7), trees, function (t) { dummy.position.set(t.x, t.y - 0.3, t.z); dummy.rotation.set(0, 0, 0); dummy.scale.set(1, t.h, 1); });
+    var leaves = [];
+    trees.forEach(function (t) { for (var k = 0; k < 3; k++) leaves.push({ t: t, k: k }); });
+    var lm = mat(0xcba6ee, 0.25, 0, { transparent: true, opacity: 0.74, flatShading: true });
+    var L = instanced(new THREE.IcosahedronGeometry(1, 1), lm, leaves, function (l) {
+      var a = rng() * 6.283, s = 0.8 + rng() * 0.6;
+      dummy.position.set(l.t.x + Math.cos(a) * 1.1, l.t.y + l.t.h * (0.84 + l.k * 0.07), l.t.z + Math.sin(a) * 1.1);
+      dummy.rotation.set((rng() - 0.5) * 0.5, a, (rng() - 0.5) * 0.5); dummy.scale.set(2.5 * s, 0.32, 1.15 * s);
+    });
+    L.receiveShadow = false;
+  })();
+
+  var roseSites = [];
+  (function () {
+    var blobs = [];
+    for (var tries = 0; tries < 400 && roseSites.length < 11; tries++) {
+      var x = -98 + rng() * 196, z = -98 + rng() * 196;
+      if (Math.abs(x - canyonX(z)) < canyonW(z) + 26) continue;
+      if ((x - AX) * (x - AX) + (z - AZ) * (z - AZ) < 34 * 34) continue;
+      var near = false; roseSites.forEach(function (s) { if ((s.x - x) * (s.x - x) + (s.z - z) * (s.z - z) < 30 * 30) near = true; });
+      if (near) continue;
+      roseSites.push({ x: x, z: z, y: terr(x, z).y });
+      var n = 8 + Math.floor(rng() * 7);
+      for (var i = 0; i < n; i++) { var bx = x + (rng() - 0.5) * 15, bz = z + (rng() - 0.5) * 15, r = 2.2 + rng() * 4.4; blobs.push({ x: bx, z: bz, r: r, y: terr(bx, bz).y + r * 0.45 }); }
+    }
+    roseSites.sort(function (a, b) { return a.x - b.x; });
+    instanced(new THREE.IcosahedronGeometry(1, 1), mat(0xffffff, 0.95, 0, { flatShading: true }), blobs, function (b, i, m) {
+      dummy.position.set(b.x, b.y, b.z); dummy.rotation.set(rng() * 3, rng() * 3, 0); dummy.scale.set(b.r, b.r * 0.82, b.r);
+      m.setColorAt(i, tc.setHSL(0.975 + rng() * 0.02, 0.62, 0.7 + rng() * 0.09));
+    });
+  })();
+
+  /* --- Cielo: estrellas y Thulcandra, visibles solo cuando el cielo se oscurece --- */
+  var starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 1.7, sizeAttenuation: false, transparent: true, opacity: 0, fog: false, depthWrite: false });
+  (function () {
+    var n = 1100, p = new Float32Array(n * 3);
+    for (var i = 0; i < n; i++) { var u = rng() * 2 - 1, a = rng() * 6.283, r = Math.sqrt(1 - u * u); p[i * 3] = 900 * r * Math.cos(a); p[i * 3 + 1] = 900 * u; p[i * 3 + 2] = 900 * r * Math.sin(a); }
+    var g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+    world.add(new THREE.Points(g, starMat));
+  })();
+  var THUL = new THREE.Vector3(Math.sin(45 * D2R) * Math.cos(6 * D2R), Math.sin(6 * D2R), -Math.cos(45 * D2R) * Math.cos(6 * D2R)).multiplyScalar(860);
+  var thulMat;
+  (function () {
+    var cv = document.createElement('canvas'); cv.width = cv.height = 64; var x = cv.getContext('2d');
+    var gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.18, 'rgba(170,215,255,1)'); gr.addColorStop(0.5, 'rgba(90,160,255,.25)'); gr.addColorStop(1, 'rgba(90,160,255,0)');
+    x.fillStyle = gr; x.fillRect(0, 0, 64, 64);
+    thulMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, opacity: 0, fog: false, depthWrite: false });
+    var s = new THREE.Sprite(thulMat); s.position.copy(THUL); s.scale.setScalar(30); world.add(s);
+  })();
+
+  /* ---------- Galería de habitantes (a escala real, 1 unidad = 1 m) ---------- */
+  var gal = new THREE.Scene();
+  gal.background = new THREE.Color(0x5a4a78); gal.fog = new THREE.Fog(0x5a4a78, 45, 110);
+  gal.add(new THREE.HemisphereLight(0xe8e2ff, 0x8a5a70, 0.5));
+  var key = new THREE.DirectionalLight(0xfff0dd, 0.7); key.position.set(7, 13, 11); key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+  key.shadow.camera.left = -16; key.shadow.camera.right = 16; key.shadow.camera.top = 12; key.shadow.camera.bottom = -8; key.shadow.camera.far = 60; key.shadow.bias = -0.0004;
+  gal.add(key);
+  var rim = new THREE.DirectionalLight(0x9fc0ff, 0.6); rim.position.set(-8, 6, -10); gal.add(rim);
+  var floorG = new THREE.Mesh(new THREE.CylinderGeometry(15, 15, 0.4, 64), mat(0xcf8ea4, 1)); floorG.position.set(1.5, -0.2, 0); floorG.receiveShadow = true; gal.add(floorG);
+  var RULER_X = -7.9;
+  (function () {
+    var m = mat(0xf8e9ec, 1), post = new THREE.Mesh(new THREE.BoxGeometry(0.05, 6, 0.05), m); post.position.set(RULER_X, 3, 0); gal.add(post);
+    for (var i = 1; i <= 6; i++) { var t = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.025, 0.025), m); t.position.set(RULER_X + 0.17, i, 0); gal.add(t); }
+  })();
+  var figs = {};
+  function addFig(id, obj, x, h, ry, focusH) { obj.position.set(x, 0, 0); obj.rotation.y = ry || 0; gal.add(obj); figs[id] = { obj: obj, x: x, h: h, ry: ry || 0, fh: focusH || h }; }
+  addFig('pfifl', makePfifl(), -6.5, 1.2);
+  addFig('ransom', makeHuman(RANSOM), -5.0, 1.84);
+  var wd = new THREE.Group(), w1 = makeHuman(WESTON), w2 = makeHuman(DEVINE); w1.position.x = -0.42; w2.position.x = 0.46; wd.add(w1); wd.add(w2);
+  addFig('wd', wd, -3.2, 1.8);
+  addFig('hross', makeHross(), -1.0, 2.15);
+  addFig('sorn', makeSorn(), 1.7, 5.6);
+  addFig('eldil', makeEldil(), 4.3, 3.5);
+  addFig('hnakra', makeHnakra(), 7.8, 1.3, -1.15, 3.6);
+
+  /* ---------- Cámara, controles y etiquetas ---------- */
+  var camera = new THREE.PerspectiveCamera(45, 1, 0.3, 2400);
+  var controls = new THREE.OrbitControls(camera, canvas);
+  controls.enableDamping = true; controls.dampingFactor = 0.08; controls.screenSpacePanning = false;
+
+  function viewPos(t, v) { var el = v.el * D2R, az = v.az * D2R; return new THREE.Vector3(t.x + v.d * Math.sin(az) * Math.cos(el), t.y + v.d * Math.sin(el), t.z + v.d * Math.cos(az) * Math.cos(el)); }
+  var V3 = function (x, y, z) { return new THREE.Vector3(x, y, z); };
+  var rose0 = roseSites[0] || { x: -70, z: -60, y: 16 };
+  var forestP = { x: westX(27, 8), z: 27 };
+  var SPOT = {
+    handramit: { p: V3(riverX(-66), 2, -66), lift: 7, v: { d: 82, az: 8, el: 12 } },
+    harandra: { p: V3(-72, terr(-72, 62).y + 1, 62), lift: 4, v: { d: 62, az: -60, el: 9 } },
+    nave: FV.nave,
+    bosque: { p: V3(forestP.x, 8, forestP.z), lift: 15, v: { d: 30, az: 165, el: 5 } },
+    agujas: { p: tallest ? V3(tallest.x, tallest.y + tallest.h * 0.6, tallest.z) : V3(-40, 30, 0), lift: tallest ? tallest.h * 0.45 : 8, v: { d: 62, az: 70, el: 6 } },
+    rosa: { p: V3(rose0.x, rose0.y + 4, rose0.z), lift: 8, v: { d: 46, az: 60, el: 16 } },
+    aldea: FV.aldea,
+    hnakra: FV.hnakra,
+    rebano: FV.rebano,
+    torre: { p: V3(caveX - 3, caveY + 3.5, AZ), lift: 6.5, v: { d: 32, az: -112, el: 10 } },
+    thulcandra: { p: THUL, lift: 0, star: true },
+    meldilorn: { p: V3(HALF - 3, gy(HALF - 3, AZ + 18) + 1, AZ + 18), lift: 5, v: { d: 70, az: -100, el: 14 } }
+  };
+  var HOME = { world: { t: V3(0, 6, -8), v: { d: 235, az: -45, el: 28 } }, gal: { t: V3(1, 2.5, 0) } };
+  function galHome() { var d = Math.min(52, Math.max(19.5, 12.6 / (Math.tan(22.5 * D2R) * camera.aspect))); return V3(1, 3.6, d); }
+
+  var labels = [];
+  function addLabel(m, id, text, pos, locked) {
+    var b = document.createElement('button'); b.className = 'lab' + (locked ? ' locked' : ''); b.textContent = text; b.setAttribute('aria-pressed', 'false'); b.hidden = true;
+    b.addEventListener('click', function () { select(id); });
+    labelsEl.appendChild(b); labels.push({ el: b, mode: m, id: id, pos: pos });
+  }
+  PLACES.forEach(function (pl) { var s = SPOT[pl.id]; addLabel('world', pl.id, pl.name, s.p.clone().setY(s.p.y + s.lift), pl.locked); });
+  FOLK.forEach(function (f) { var g = figs[f.id]; addLabel('gal', f.id, f.id === 'pfifl' ? 'Pfifltriggi ?' : f.name, V3(g.x, g.h + 0.3 + (f.id === 'wd' ? 0.75 : 0), 0), f.locked); });
+  for (var ti = 1; ti <= 6; ti++) { var te = document.createElement('div'); te.className = 'tick'; te.textContent = ti + ' m'; te.hidden = true; labelsEl.appendChild(te); labels.push({ el: te, mode: 'gal', tick: true, pos: V3(RULER_X - 0.12, ti, 0) }); }
+
+  var fly = null;
+  function flyTo(p, t, dur) {
+    if (reduce) { camera.position.copy(p); controls.target.copy(t); controls.update(); return; }
+    fly = { s: performance.now(), dur: dur || 1400, p0: camera.position.clone(), t0: controls.target.clone(), p1: p, t1: t };
+    controls.enabled = false;
+  }
+  canvas.addEventListener('pointerdown', function () { if (fly) { fly = null; controls.enabled = true; } });
+  canvas.addEventListener('wheel', function () { if (fly) { fly = null; controls.enabled = true; } }, { passive: true });
+
+  function limits() {
+    if (mode === 'world') { controls.minDistance = 6; controls.maxDistance = 360; controls.maxPolarAngle = 1.52; }
+    else { controls.minDistance = 2; controls.maxDistance = 70; controls.maxPolarAngle = 1.56; }
+  }
+  function goHome(animated) {
+    var t, p;
+    if (mode === 'world') { t = HOME.world.t.clone(); p = viewPos(t, HOME.world.v); } else { t = HOME.gal.t.clone(); p = galHome(); }
+    if (animated) flyTo(p, t); else { camera.position.copy(p); controls.target.copy(t); controls.update(); }
+  }
+  var saved = { world: null, gal: null };
+  setModeHook = function (m) {
+    fly = null; controls.enabled = true;
+    saved[mode] = { p: camera.position.clone(), t: controls.target.clone() };
+    mode = m; limits();
+    if (saved[m]) { camera.position.copy(saved[m].p); controls.target.copy(saved[m].t); controls.update(); } else goHome(false);
+  };
+  onSelect = function (id) {
+    labels.forEach(function (L) { if (L.id && L.mode === mode) L.el.setAttribute('aria-pressed', L.id === id ? 'true' : 'false'); });
+    if (!id) { goHome(true); return; }
+    if (mode === 'world') {
+      var s = SPOT[id];
+      if (s.star) { var t0 = V3(0, 10, 0); flyTo(viewPos(t0, { d: 300, az: -45, el: 12 }), t0, 1800); }
+      else flyTo(viewPos(s.p, s.v), s.p.clone());
+    } else {
+      var g = figs[id], d = Math.max(g.fh * 2.1, 4.6); if (camera.aspect < 1) d /= Math.max(camera.aspect, 0.6);
+      var t = V3(g.x, g.h * 0.55, 0); flyTo(V3(t.x + d * 0.3, t.y + d * 0.14, d), t, 1100);
+    }
+  };
+
+  var W = 1, H = 1;
+  function resize() {
+    W = Math.max(1, stage.clientWidth); H = Math.max(1, stage.clientHeight);
+    renderer.setSize(W, H, false); camera.aspect = W / H; camera.updateProjectionMatrix();
+  }
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(stage); else window.addEventListener('resize', resize);
+  resize(); limits(); goHome(false);
+
+  var pv = new THREE.Vector3(), skyT = 0, tickN = 0;
+  // Una etiqueta se oculta si el relieve tapa la linea entre la camara y su lugar
+  function occluded(P) {
+    var c = camera.position;
+    for (var i = 2; i <= 14; i++) {
+      var t = i / 16, x = lerp(c.x, P.x, t), z = lerp(c.z, P.z, t);
+      if (Math.abs(x) < HALF && Math.abs(z) < HALF && terr(x, z).y > lerp(c.y, P.y, t) + 0.6) return true;
+    }
+    return false;
+  }
+  function updateLabels() {
+    var recheck = (tickN++ % 8) === 0;
+    for (var i = 0; i < labels.length; i++) {
+      var L = labels[i];
+      if (L.mode !== mode) { L.el.hidden = true; continue; }
+      if (L.id === 'thulcandra') { if (skyT < 0.4) { L.el.hidden = true; continue; } }
+      else if (L.mode === 'world') { if (recheck) L.occ = occluded(L.pos); if (L.occ && sel.world !== L.id) { L.el.hidden = true; continue; } }
+      pv.copy(L.pos).project(camera);
+      if (pv.z > 1 || pv.z < -1 || Math.abs(pv.x) > 1.02 || Math.abs(pv.y) > 1.02) { L.el.hidden = true; continue; }
+      var x = (pv.x * 0.5 + 0.5) * W, y = (-pv.y * 0.5 + 0.5) * H;
+      if (y < 96 && x < 330) { L.el.hidden = true; continue; }
+      L.el.hidden = false;
+      L.el.style.transform = L.tick ? 'translate(-100%,-50%) translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)' : 'translate(-50%,-100%) translate(' + x.toFixed(1) + 'px,' + (y - 9).toFixed(1) + 'px)';
+    }
+  }
+  var last = performance.now();
+  function frame(now) {
+    requestAnimationFrame(frame);
+    var dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (fly) {
+      var k = Math.min(1, (now - fly.s) / fly.dur), e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+      camera.position.lerpVectors(fly.p0, fly.p1, e); controls.target.lerpVectors(fly.t0, fly.t1, e); camera.lookAt(controls.target);
+      if (k >= 1) { fly = null; controls.enabled = true; }
+    } else controls.update();
+    var tsec = now / 1000;
+    if (!reduce) {
+      hnakraPivot.rotation.y -= dt * 0.45;
+      fire.scale.y = 0.55 + 0.12 * Math.sin(tsec * 9); fireLight.intensity = 1.4 + 0.3 * Math.sin(tsec * 11);
+      for (var i = 0; i < eldilMats.length; i++) eldilMats[i].opacity = eldilMats[i].userData.base * (0.55 + 0.45 * Math.abs(Math.sin(tsec * (1.3 + i * 0.37) + i)));
+      for (var id in figs) { var f = figs[id]; if (mode === 'gal' && sel.gal === id && id !== 'wd') f.obj.rotation.y += dt * 0.35; else f.obj.rotation.y += (f.ry - f.obj.rotation.y) * Math.min(1, dt * 4); }
+      if (figs.eldil.obj.userData.spin) figs.eldil.obj.userData.spin.rotation.y = tsec * 0.8;
+    }
+    if (mode === 'world') {
+      var y = camera.position.y;
+      skyT = 0.55 * sstep(8, 30, y) + 0.45 * sstep(30, 92, y);
+      skyNow.copy(skyLow).lerp(skyHigh, skyT);
+      world.background.copy(skyNow); world.fog.color.copy(skyNow);
+      starMat.opacity = skyT; thulMat.opacity = Math.min(1, skyT * 1.3);
+      renderer.render(world, camera);
+    } else renderer.render(gal, camera);
+    updateLabels();
+  }
+  requestAnimationFrame(frame);
+  window.__atlas = { select: select, setMode: setMode };
+})();
+</script>
