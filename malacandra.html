@@ -57,7 +57,7 @@
 
   .listwrap { display: flex; flex-direction: column; gap: 8px; }
   .listwrap h3 { margin: 0; font-size: .76rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
-  #list { display: flex; flex-wrap: wrap; gap: 6px; }
+  #list { position: relative; display: flex; flex-wrap: wrap; gap: 6px; }   /* relative: el texto .sr de los chips no desborda la página */
   #list button { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 4px 12px; font-size: .9rem; white-space: nowrap; }
   #list button:hover { border-color: var(--rose); }
   #list button[aria-pressed="true"] { background: var(--gold); border-color: var(--gold); color: var(--night); font-weight: 700; }
@@ -94,8 +94,13 @@
   /* Ransom está aquí */
   .here { position: absolute; left: 0; top: 0; pointer-events: none; white-space: nowrap; font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--gold);
     padding: 2px 8px 3px; border-radius: 6px; background: rgba(28, 18, 34, .8); will-change: transform; }
-  #list .dot { display: inline-block; width: 6px; height: 6px; margin-left: 7px; border-radius: 50%; background: var(--gold); vertical-align: middle; position: relative; top: -1px; }
+  .scenes { position: relative; flex: none; display: flex; flex-wrap: wrap; gap: 6px; margin-top: -8px; }
+  .scenes button { flex: 1 1 auto; border: 1px solid var(--line); background: transparent; border-radius: 8px; padding: 4px 10px; font-size: .84rem; white-space: nowrap; color: var(--muted); }
+  .scenes button:hover { border-color: var(--rose); color: var(--paper); }
+  .scenes button[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); background: var(--ink-2); }
+  #list .dot, .scenes .dot { display: inline-block; width: 6px; height: 6px; margin-left: 7px; border-radius: 50%; background: var(--gold); vertical-align: middle; position: relative; top: -1px; }
   #list button[aria-pressed="true"] .dot { background: var(--night); }
+  @media (max-width: 780px) { .scenes { margin-top: -4px; } .scenes button { padding: 3px 8px; font-size: .8rem; } }
 
   @media (max-width: 780px) {
     #app { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
@@ -145,6 +150,7 @@
       <button id="tab-world" role="tab" aria-selected="true">El mundo</button>
       <button id="tab-gal" role="tab" aria-selected="false">Habitantes</button>
     </div>
+    <div class="scenes" id="scenes" role="group" aria-label="Escena" hidden></div>
     <section id="card" aria-live="polite"></section>
     <div class="listwrap">
       <h3 id="list-title">Lugares</h3>
@@ -168,10 +174,30 @@
      Se muestra la última versión con from <= CH. Lo que una versión omite se hereda de la anterior. */
   var TOTAL = 22;
   var WHY_GRAV = ['La idea base', 'Con menos gravedad, un cuerpo puede ser mucho más alto y delgado sin romperse. Por eso todos aquí parecen estirados.'];
+  /* "El mundo" tiene tres escenas. Cada una existe desde un capítulo y tiene su propia introducción. */
+  var SCENES = [
+    { id: 'tierra', from: 1, name: 'Inglaterra' },
+    { id: 'cielo', from: 3, name: 'Los cielos' },
+    { id: 'mal', from: 7, name: 'Malacandra' }
+  ];
+  // Escena donde está Ransom en cada capítulo
+  function sceneFor(n) { return n < 1 ? 'mal' : n <= 2 || n === 22 ? 'tierra' : n <= 6 || n === 21 ? 'cielo' : 'mal'; }
   var INTRO = {
-    world: { v: [
-      { from: 1, cap: 'Capítulos 1 a 6', name: 'Todavía no has llegado', tag: '',
-        text: 'En este capítulo Ransom aún no pisa Malacandra. Esta parte del atlas llegará pronto.' },
+    tierra: { v: [
+      { from: 1, cap: 'Más allá del planeta silencioso', name: 'Inglaterra', tag: 'Antes del viaje',
+        text: 'Todo empieza con un hombre que camina solo al anochecer. Cerca hay una casa donde pasa algo raro.' },
+      { from: 22, tag: 'De vuelta en el planeta silencioso',
+        text: 'Ransom ha vuelto. Lo que trae es una historia que casi nadie creería.' }
+    ] },
+    cielo: { v: [
+      { from: 3, cap: 'Más allá del planeta silencioso', name: 'Los cielos', tag: 'Entre dos mundos',
+        text: 'Ransom viaja preso dentro de una esfera de metal. No sabe a dónde lo llevan ni para qué.' },
+      { from: 5,
+        text: 'Ransom viaja preso dentro de una esfera de metal. No sabe a dónde lo llevan ni para qué. Pese al miedo, el viaje le sienta bien.' },
+      { from: 21, tag: 'El camino de vuelta',
+        text: 'Ransom vuelve en la misma esfera, con Weston y Devine. Esta vez sabe a dónde va.' }
+    ] },
+    mal: { v: [
       { from: 7, cap: 'Más allá del planeta silencioso', name: 'Un mundo desconocido', tag: 'Ransom no sabe dónde está',
         text: 'Ransom no sabe en qué mundo ha caído. Ve agua azul, suelo rosado, un bosque púrpura y montañas como agujas. Todo parece demasiado alto y delgado.',
         why: ['La idea base', 'Aquí las cosas pesan menos que en la Tierra. Por eso pueden estirarse hacia arriba sin caerse.'] },
@@ -200,7 +226,62 @@
   var NEUTRAL = { cap: 'Atlas de Malacandra', name: 'Elige tu capítulo', tag: '',
     text: 'Dime en qué capítulo vas. El atlas mostrará solo lo que Ransom ya sabe en ese punto.' };
 
+  // scene: escena de "El mundo" a la que pertenece el lugar ('mal' si no se indica)
   var PLACES = [
+    { id: 'camino', scene: 'tierra', from: 1, v: [
+      { from: 1, name: 'Un camino en Inglaterra', tag: 'Un caminante sin posada', cap: 'Capítulo 1',
+        text: 'Ransom recorre Inglaterra a pie en sus vacaciones. Anochece, ha llovido y nadie le da alojamiento. Sigue andando hacia el siguiente pueblo.' }
+    ] },
+    { id: 'casita', scene: 'tierra', from: 1, v: [
+      { from: 1, name: 'La casita', tag: 'Una madre preocupada', cap: 'Capítulo 1',
+        text: 'Una mujer espera a su hijo Harry, que trabaja en la casa grande y ya debería haber vuelto. Ransom promete ir a buscarlo y mandárselo.' }
+    ] },
+    { id: 'rise', scene: 'tierra', from: 1, v: [
+      { from: 1, name: 'The Rise', tag: 'La casa tras el seto', cap: 'Capítulo 1',
+        text: 'La verja está cerrada. Ransom se cuela por el seto y encuentra a dos hombres forcejeando con el muchacho. A uno lo conoce: Devine, antiguo compañero de colegio. El otro es Weston, un físico famoso.' },
+      { from: 2, cap: 'Capítulos 1 y 2',
+        text: 'Lo invitan a pasar y le dan de beber. La bebida lleva algo. Despierta a medias, intenta huir y lo derriban. Iban a llevarse al muchacho, pero Ransom les sirve mejor: nadie lo espera en meses.' },
+      { from: 3, cap: 'Capítulos 1 a 3',
+        text: 'Lo invitan a pasar y le dan de beber. La bebida lleva algo. Despierta a medias, intenta huir y lo derriban. Ransom les sirve mejor que el muchacho: nadie lo espera en meses. Lo que escondían en el patio era una nave esférica.' }
+    ] },
+    { id: 'pub', scene: 'tierra', from: 21, v: [
+      { from: 21, name: 'El pub', tag: 'Una pinta, por favor', cap: 'Capítulo 21',
+        text: 'La nave toca tierra de noche y bajo la lluvia. Ransom se aleja y poco después la esfera se deshace, como dijo Oyarsa. Camina hasta una luz, entra en un pub y pide una pinta de cerveza.' }
+    ] },
+    { id: 'estudio', scene: 'tierra', from: 22, v: [
+      { from: 22, name: 'El narrador', tag: 'Por qué esto se cuenta como novela', cap: 'Capítulo 22',
+        text: 'Quien escribe el libro conoce a Ransom, que no se llama así en realidad. Le escribió por una palabra hallada en un texto medieval: Oyarses. Ransom, que al volver llegó a dudar de todo lo vivido, le contó la historia. Deciden publicarla como ficción para que al menos algunos se acostumbren a la idea.' }
+    ] },
+    { id: 'esfera', scene: 'cielo', from: 3, v: [
+      { from: 3, name: 'La nave', tag: 'Una esfera sin arriba ni abajo', cap: 'Capítulo 3',
+        text: 'Ransom despierta en un cuarto extraño. Las paredes parecen inclinadas y el suelo se curva. La nave es una esfera y "abajo" es hacia su centro, así que se vive sobre la cara interior.',
+        why: ['Por qué', 'La nave pesa poco, y su centro es lo único que tira de quienes van dentro.'] },
+      { from: 4, cap: 'Capítulos 3 y 4',
+        text: 'Weston explica lo justo. La nave se mueve aprovechando propiedades poco conocidas de la radiación solar. Un lado mira siempre al sol y arde de calor; el otro es frío. Van a un mundo que sus habitantes llaman Malacandra.' },
+      { from: 5, cap: 'Capítulos 3 a 5',
+        text: 'Ransom oye a escondidas a sus captores. Lo llevan porque unos seres llamados sorns pidieron que les trajeran un hombre. Supone que es para un sacrificio. Esconde un cuchillo.' },
+      { from: 21, name: 'El regreso', tag: 'Noventa días', cap: 'Capítulo 21',
+        text: 'El aire y la comida van justos. El rumbo los obliga a pasar muy cerca del sol y el calor es casi insoportable. Al final la Luna se interpone y hay que corregir. Llegan casi sin nada.' }
+    ] },
+    { id: 'disco', scene: 'cielo', from: 3, v: [
+      { from: 3, name: 'El disco enorme', tag: 'No es la Luna', cap: 'Capítulo 3',
+        text: 'Por la claraboya Ransom ve un disco brillante gigantesco. Piensa que es la Luna, más grande de lo normal. No lo es. Es la Tierra, que se aleja.' },
+      { from: 21, name: 'La Tierra', tag: 'Thulcandra desde fuera', cap: 'Capítulos 3 y 21',
+        text: 'La Tierra vuelve a crecer en la claraboya. Ransom ya sabe cómo la llaman fuera, Thulcandra, y por qué calla.' }
+    ] },
+    { id: 'cielos', scene: 'cielo', from: 5, v: [
+      { from: 5, name: 'Los cielos', tag: 'No es espacio vacío', cap: 'Capítulo 5',
+        text: 'Ransom esperaba un abismo negro y muerto. Se encuentra bañado en luz, despierto y fuerte como nunca. Deja de pensar en "espacio": la palabra antigua, "los cielos", le parece más exacta.',
+        why: ['Por qué', 'Lo oscuro no es el cielo sino nuestra noche, la sombra de un mundo. Fuera de esa sombra todo es luz.'] }
+    ] },
+    { id: 'destino', scene: 'cielo', from: 5, v: [
+      { from: 5, name: 'Un punto que crece', tag: 'Malacandra', cap: 'Capítulo 5', locked: true,
+        text: 'Aún es solo una luz entre otras.' },
+      { from: 6, name: 'Malacandra se acerca', cap: 'Capítulos 5 y 6', locked: false,
+        text: 'El disco llena la claraboya. El peso vuelve poco a poco y con él el cansancio. La esfera baja y toca suelo. Ransom está a punto de pisar otro mundo.' },
+      { from: 21, name: 'Malacandra queda atrás', cap: 'Capítulos 5, 6 y 21',
+        text: 'Ahora es Malacandra la que se encoge tras la nave. Pronto vuelve a ser una luz entre otras.' }
+    ] },
     { id: 'handramit', from: 7, v: [
       { from: 7, name: 'El valle', tag: 'Agua tibia entre paredes', cap: 'Capítulo 7',
         text: 'Un valle largo de suelo rosado y blando. El agua es azul y tibia, con olas altas y estrechas. Ransom huye por él sin rumbo.' },
@@ -382,7 +463,9 @@
         text: 'Ransom casi no ve nada: apenas un cambio en la luz. La voz no tiembla ni respira. Gobierna Malacandra desde su origen, y cada mundo tiene el suyo.',
         why: ['Por qué Thulcandra calla', 'Su Oyarsa se torció y quedó encerrado en su propio mundo.'] },
       { from: 20, cap: 'Capítulos 18 a 20',
-        text: 'Ransom casi no ve nada: apenas un cambio en la luz. La voz no tiembla ni respira. Gobierna Malacandra desde su origen, y cada mundo tiene el suyo. Juzga a Weston y a Devine y los manda de vuelta. A Ransom le dice que volverán a encontrarse.' }
+        text: 'Ransom casi no ve nada: apenas un cambio en la luz. La voz no tiembla ni respira. Gobierna Malacandra desde su origen, y cada mundo tiene el suyo. Juzga a Weston y a Devine y los manda de vuelta. A Ransom le dice que volverán a encontrarse.' },
+      { from: 22, cap: 'Capítulos 18 a 22',
+        facts: [['El nombre', 'La palabra Oyarses aparece en un texto medieval. Por ella el narrador dio con Ransom.']] }
     ] },
     { id: 'hnakra', from: 7, v: [
       { from: 7, name: 'La bestia del agua', tag: 'Un hocico que chasquea', cap: 'Capítulo 7',
@@ -397,6 +480,8 @@
         text: 'Elwin Ransom, filólogo de Cambridge. Alto, de hombros algo caídos, entre treinta y cinco y cuarenta años. Está de vacaciones y recorre Inglaterra a pie.' },
       { from: 2,
         text: 'Elwin Ransom, filólogo de Cambridge. Alto, de hombros algo caídos, entre treinta y cinco y cuarenta años, con la ropa gastada de quien anda de excursión a pie. Lo drogan y lo secuestran.' },
+      { from: 5,
+        text: 'Elwin Ransom, filólogo de Cambridge. Alto, de hombros algo caídos, entre treinta y cinco y cuarenta años. Lo drogan y lo secuestran. En el viaje se siente más sano y despierto que nunca, aunque teme lo que le espera.' },
       { from: 7, tag: 'Humano en un mundo ajeno' },
       { from: 9,
         why: ['Por qué importa su oficio', 'Estudia lenguas. Cuando oye hablar a Hyoi, la curiosidad le gana al miedo. Aprender el idioma es lo que le abre este mundo.'] },
@@ -405,12 +490,17 @@
       { from: 18,
         text: 'Elwin Ransom, filólogo de Cambridge. Alto, de hombros algo caídos, entre treinta y cinco y cuarenta años. Lo secuestran para entregarlo a los sorns. En Meldilorn descubre que nadie quiso sacrificarlo.' },
       { from: 20,
-        text: 'Elwin Ransom, filólogo de Cambridge. Alto, de hombros algo caídos, entre treinta y cinco y cuarenta años. En Meldilorn descubre que nadie quiso sacrificarlo. Traduce el discurso de Weston ante Oyarsa y decide volver a la Tierra.' }
+        text: 'Elwin Ransom, filólogo de Cambridge. Alto, de hombros algo caídos, entre treinta y cinco y cuarenta años. En Meldilorn descubre que nadie quiso sacrificarlo. Traduce el discurso de Weston ante Oyarsa y decide volver a la Tierra.' },
+      { from: 21, tag: 'De vuelta en Thulcandra',
+        text: 'Elwin Ransom, filólogo de Cambridge. Alto, de hombros algo caídos, entre treinta y cinco y cuarenta años. Elige volver a la Tierra con Weston y Devine. Llega agotado y enfermo tras el viaje.' },
+      { from: 22, tag: 'Un nombre prestado',
+        text: 'Filólogo de Cambridge, alto y de hombros algo caídos. Viajó a Malacandra y volvió agotado y enfermo. Ransom no es su verdadero nombre: el narrador se lo cambia para protegerlo.' }
     ] },
     { id: 'wd', from: 1, v: [
       { from: 1, name: 'Weston y Devine', tag: 'Un viejo compañero y un físico', cap: 'Desde el capítulo 1',
         text: 'Devine fue compañero de colegio de Ransom: delgado y burlón. Weston, a la izquierda, es físico: corpulento y de voz fuerte. Ransom los sorprende forcejeando con un muchacho.' },
-      { from: 2, tag: 'Los secuestradores' },
+      { from: 2, tag: 'Los secuestradores',
+        text: 'Devine fue compañero de colegio de Ransom: delgado y burlón. Weston, a la izquierda, es físico: corpulento y de voz fuerte. Drogan a Ransom y se lo llevan en lugar del muchacho.' },
       { from: 4,
         text: 'Weston, a la izquierda, es físico: corpulento, de voz fuerte. Construyó la nave y cree que la humanidad debe extenderse a otros mundos cueste lo que cueste. Devine fue compañero de colegio de Ransom, delgado y burlón. Solo le interesa lo que pueda ganar.' },
       { from: 11,
@@ -420,7 +510,11 @@
       { from: 19,
         text: 'Weston, a la izquierda, es físico y cree que la humanidad debe extenderse a otros mundos cueste lo que cueste. Devine, delgado y burlón, solo quiere oro. Llegan presos a Meldilorn. Weston trata a todos como salvajes y ofrece cuentas de colores. Lo toman por enfermo y lo meten en agua fría.' },
       { from: 20, tag: 'Juzgados por Oyarsa',
-        text: 'Weston, a la izquierda, es físico y cree que la humanidad debe extenderse a otros mundos cueste lo que cueste. Devine, delgado y burlón, solo quiere oro. Oyarsa los juzga: Weston está torcido y Devine, roto. Los manda de vuelta a su mundo.' }
+        text: 'Weston, a la izquierda, es físico y cree que la humanidad debe extenderse a otros mundos cueste lo que cueste. Devine, delgado y burlón, solo quiere oro. Oyarsa los juzga: Weston está torcido y Devine, roto. Los manda de vuelta a su mundo.' },
+      { from: 21, tag: 'Vuelven vencidos',
+        text: 'Weston, a la izquierda, es físico y cree que la humanidad debe extenderse a otros mundos cueste lo que cueste. Devine, delgado y burlón, solo quiere oro. Oyarsa los juzga y los manda de vuelta. Regresan a la Tierra con Ransom, vencidos.' },
+      { from: 22, tag: 'Todavía sueltos',
+        text: 'Weston, a la izquierda, es físico y cree que la humanidad debe extenderse a otros mundos cueste lo que cueste. Devine, delgado y burlón, solo quiere oro. Regresan a la Tierra con Ransom, vencidos. El narrador advierte que Weston sigue libre.' }
     ] }
   ];
 
@@ -447,11 +541,14 @@
   var card = $('#card'), list = $('#list');
   var mode = 'world';
   var sel = { world: null, gal: null };
-  function items() { return mode === 'world' ? PLACES : FOLK; }
+  var scn = sceneFor(CH);   // escena activa de "El mundo"
+  function inScene(it) { return (it.scene || 'mal') === scn; }
+  function items() { return mode === 'world' ? PLACES.filter(inScene) : FOLK; }
+  function scenesOpen() { return SCENES.filter(function (s) { return CH && s.from <= CH; }); }
   function shown() { var r = []; items().forEach(function (it) { var v = ver(it); if (v) r.push(v); }); return r; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function renderCard() {
-    var it = CH ? ver(findIn(items(), sel[mode])) || ver(INTRO[mode]) : null;
+    var it = CH ? ver(findIn(items(), sel[mode])) || ver(INTRO[mode === 'world' ? scn : 'gal']) : null;
     if (!it) it = NEUTRAL;
     var h = '<div class="eyebrow">' + esc(it.cap) + '</div><h2>' + esc(it.name) + '</h2>' + (it.tag ? '<div class="tag">' + esc(it.tag) + '</div>' : '') + '<p>' + esc(it.text) + '</p>';
     if (it.why) h += '<p class="why"><b>' + esc(it.why[0]) + '.</b> ' + esc(it.why[1]) + '</p>';
@@ -470,8 +567,39 @@
     list.innerHTML = h;
     $('#hint').hidden = !CH;
     $('#hint').textContent = mode === 'world'
-      ? (CH < 7 ? 'Aún no hay mapa para este capítulo. En Habitantes puedes ver a los viajeros.' : 'Arrastra para girar, rueda o pellizca para acercarte. Si subes la cámara, el cielo se oscurece.')
+      ? (scn === 'cielo' ? 'Arrastra para girar alrededor de la nave. Aquí no hay arriba ni abajo.'
+        : scn === 'tierra' ? 'Arrastra para girar, rueda o pellizca para acercarte.'
+        : 'Arrastra para girar, rueda o pellizca para acercarte. Si subes la cámara, el cielo se oscurece.')
       : 'Arrastra para girar alrededor de las figuras. Elige una para verla de cerca.';
+    renderScenes();
+  }
+  // Conmutador de escena: solo en "El mundo" y si hay más de una escena abierta
+  var scenesEl = $('#scenes');
+  function renderScenes() {
+    var open = scenesOpen();
+    scenesEl.hidden = mode !== 'world' || open.length < 2;
+    scenesEl.innerHTML = open.map(function (s) {
+      return '<button data-scene="' + s.id + '" aria-pressed="' + (s.id === scn ? 'true' : 'false') + '">' + esc(s.name) +
+        (s.id === sceneFor(CH) ? '<span class="dot" aria-hidden="true"></span><span class="sr"> (Ransom está aquí)</span>' : '') + '</button>';
+    }).join('');
+    var nm = findIn(SCENES, scn);
+    canvas.setAttribute('aria-label', mode === 'world' ? 'Escena 3D: ' + (CH && nm ? nm.name : 'Malacandra') : 'Escena 3D: habitantes a escala');
+  }
+  scenesEl.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (b) setScene(b.getAttribute('data-scene'));
+  });
+  var sceneHook = function () {};
+  // Cambia la escena activa. Devuelve true si cambió.
+  function switchScene(id) {
+    if (id === scn) return false;
+    var prev = scn; scn = id; sel.world = null;
+    sceneHook(prev);
+    return true;
+  }
+  function setScene(id) {
+    var s = findIn(SCENES, id);
+    if (!s || !CH || s.from > CH) return;
+    if (switchScene(id)) { renderCard(); renderList(); chapterHook(false); }
   }
   var onSelect = function () {};
   list.addEventListener('click', function (e) {
@@ -517,6 +645,7 @@
     CH = n; LEIDO = leido;
     store('atlas.ch', CH); store('atlas.leido', LEIDO);
     hideAsk();
+    switchScene(sceneFor(CH));   // la escena activa es la de Ransom en ese capítulo
     var lost = false;
     ['world', 'gal'].forEach(function (m) {
       if (sel[m] && !ver(findIn(m === 'world' ? PLACES : FOLK, sel[m]))) { sel[m] = null; if (m === mode) lost = true; }
@@ -542,7 +671,7 @@
 
   syncChapterUI(); renderCard(); renderList();
   window.__atlas = {
-    select: function (id) { select(id); }, setMode: function (m) { setMode(m); },
+    select: function (id) { select(id); }, setMode: function (m) { setMode(m); }, setScene: function (id) { setScene(id); },
     setChapter: function (n) { n = Math.max(1, Math.min(TOTAL, n | 0)); goChapter(n, n); }
   };
 
@@ -927,19 +1056,22 @@
     limb(g, f, [0, 0.45, -0.18], [0, 0.08, -0.5], 0.17, 0.12);
     return g;
   }
+  // Sorn de fondo: piernas largas y abiertas, brazos separados del cuerpo, cuello fino y cara larga
   function makeSornLite() {
     var g = new THREE.Group(), c = LITE.coat, s0 = LITE.skin;
     [-1, 1].forEach(function (s) {
-      limb(g, c, [s * 0.2, 2.95, 0], [s * 0.24, 1.5, 0.06], 0.085, 0.06);
-      limb(g, s0, [s * 0.24, 1.5, 0.06], [s * 0.22, 0.03, 0.05], 0.055, 0.045);
-      limb(g, c, [s * 0.5, 4.12, 0], [s * 0.6, 2.6, 0.2], 0.07, 0.04);
+      limb(g, c, [s * 0.2, 2.95, 0], [s * 0.36, 1.5, 0.08], 0.085, 0.06);
+      limb(g, s0, [s * 0.36, 1.5, 0.08], [s * 0.42, 0.03, 0.02], 0.055, 0.04);
+      part(g, SPH, s0, [s * 0.42, 0.04, 0.12], [0.09, 0.04, 0.24]);
+      limb(g, c, [s * 0.48, 4.12, 0], [s * 0.74, 3.25, 0.08], 0.07, 0.05);
+      limb(g, s0, [s * 0.74, 3.25, 0.08], [s * 0.66, 2.45, 0.3], 0.045, 0.03);
+      part(g, SPH, DARK, [s * 0.085, 5.07, 0.245], [0.035, 0.025, 0.025]);
     });
-    lathe(g, c, [[0.001, 2.85], [0.3, 2.95], [0.36, 3.3], [0.52, 3.8], [0.52, 4.05], [0.4, 4.3], [0.16, 4.42], [0.12, 4.5]], 12).scale.z = 1.14;
-    lathe(g, c, [[0.3, 2.62], [0.46, 3.05], [0.4, 3.12], [0.001, 3.12]], 12);
-    limb(g, s0, [0, 4.45, 0.02], [0, 4.66, 0.05], 0.1, 0.08);
-    part(g, SPH, s0, [0, 4.96, 0.06], [0.19, 0.38, 0.22]);
+    lathe(g, c, [[0.001, 2.88], [0.24, 2.95], [0.34, 3.3], [0.52, 3.8], [0.52, 4.05], [0.4, 4.3], [0.12, 4.42], [0.001, 4.45]], 12).scale.z = 1.14;
+    limb(g, s0, [0, 4.4, 0.02], [0, 4.72, 0.05], 0.075, 0.06);
+    part(g, SPH, s0, [0, 4.96, 0.07], [0.2, 0.38, 0.22]);
     part(g, CONE, c, [0, 5.4, 0.03], [0.15, 0.42, 0.17]);
-    limb(g, s0, [0, 5.03, 0.26], [0, 4.74, 0.34], 0.045, 0.028);
+    limb(g, s0, [0, 5.03, 0.27], [0, 4.72, 0.36], 0.05, 0.03);
     return g;
   }
   function makePfiflLite(cloth) {
@@ -1332,9 +1464,9 @@
   (function () {
     // Arboleda de la cima: troncos lisos y pálidos coronados por flores doradas (desde 16)
     layer = layerAt(16);
-    var gt = [], ang = [-82, -60, -38, -14, 10, 34, 58, 82, -48, 22, -26], rr = [7.5, 9.5, 7, 9.8, 7.2, 9.6, 7.4, 8.8, 4.6, 4.8, 12.2];
+    var gt = [], ang = [-82, -60, -38, -14, 10, 34, 58, 82, -48, 22, -26], rr = [7.5, 9.5, 7, 9.8, 7.2, 9.6, 7.4, 8.8, 5.8, 6, 12.2];
     ang.forEach(function (a, i) { var x = MX + Math.cos(a * D2R) * rr[i], z = MZ + Math.sin(a * D2R) * rr[i]; gt.push({ x: x, z: z, y: gy(x, z), h: 28 + rngE() * 8 }); });
-    var tg = new THREE.CylinderGeometry(0.32, 0.7, 1, 12); tg.translate(0, 0.5, 0);
+    var tg = new THREE.CylinderGeometry(0.22, 0.5, 1, 10); tg.translate(0, 0.5, 0);
     instanced(tg, mat(0xeee6d6, 0.45), gt, function (t) { dummy.position.set(t.x, t.y - 0.4, t.z); dummy.rotation.set((rngE() - 0.5) * 0.05, 0, (rngE() - 0.5) * 0.05); dummy.scale.set(1, t.h, 1); });
     var fl = []; gt.forEach(function (t) { for (var k = 0; k < 6; k++) fl.push(t); });
     instanced(new THREE.IcosahedronGeometry(1, 1), mat(0xffffff, 0.55, 0.1, { flatShading: true, emissive: 0x3a2600 }), fl, function (t, k, m) {
@@ -1417,6 +1549,296 @@
     [[224.4, 1], [227.8, 1], [226, -1]].forEach(function (f) { onGround(bake(makeSornLite()), f[0], f[1] * 7.2, f[1] > 0 ? Math.PI : 0); });
   })();
 
+  /* ---------- Inglaterra y los cielos (capítulos 1 a 6, 21 y 22) ----------
+     Cada escena es su propio THREE.Scene y usa su propio azar, para que Malacandra no cambie. */
+  function mkRng(s) { return function () { s |= 0; s = s + 0x6D2B79F5 | 0; var t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function glowTex(stops) {
+    var cv = document.createElement('canvas'); cv.width = cv.height = 128; var x = cv.getContext('2d');
+    var gr = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+    stops.forEach(function (s) { gr.addColorStop(s[0], s[1]); });
+    x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
+    return new THREE.CanvasTexture(cv);
+  }
+  function glow(tex, scale, op) {
+    var s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: op || 1, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+    s.scale.setScalar(scale); return s;
+  }
+  // Cinta plana pegada al suelo a lo largo de unos puntos
+  function ribbon(pts, w, hf, m) {
+    var P = new Float32Array(pts.length * 6), idx = [];
+    pts.forEach(function (p, i) {
+      var q = pts[Math.min(i + 1, pts.length - 1)], o = pts[Math.max(i - 1, 0)], dx = q.x - o.x, dz = q.z - o.z, l = Math.hypot(dx, dz) || 1, nx = -dz / l * w / 2, nz = dx / l * w / 2;
+      P.set([p.x + nx, hf(p.x + nx, p.z + nz) + 0.06, p.z + nz, p.x - nx, hf(p.x - nx, p.z - nz) + 0.06, p.z - nz], i * 6);
+      if (i) idx.push(2 * i - 2, 2 * i - 1, 2 * i, 2 * i, 2 * i - 1, 2 * i + 1);
+    });
+    var g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(P, 3)); g.setIndex(idx); g.computeVertexNormals();
+    var mesh = new THREE.Mesh(g, m); mesh.receiveShadow = true; return mesh;
+  }
+  // Prisma triangular para tejados: largo en x, ancho w en z, alto h
+  function roofGeo(len, w, h) {
+    var g = new THREE.CylinderGeometry(1, 1, len, 3, 1); g.rotateZ(Math.PI / 2); g.rotateX(-Math.PI / 2); g.scale(1, h / 1.5, w / 1.732); g.translate(0, h / 3, 0);
+    return g;
+  }
+
+  /* --- Inglaterra: un diorama de 90 x 90 al anochecer, tras la lluvia --- */
+  var tierra = new THREE.Scene(), TT = {};
+  (function () {
+    var R = mkRng(19380101), TH = 45;
+    function roadZ(x) { return 8 + 4 * Math.sin(x * 0.05); }
+    var FLATS = [{ x: 15, z: -24, r: 24 }, { x: -25, z: -2, r: 8 }, { x: 36, z: 20, r: 9 }, { x: -34, z: 30, r: 7 }];
+    function th(x, z) {
+      var h = Math.max(0, 5 * (fbm(x * 0.035 + 20, z * 0.035 + 20) - 0.36)) + 2.5 * sstep(32, 46, Math.max(Math.abs(x), Math.abs(z)));
+      h *= sstep(2.5, 12, Math.abs(z - roadZ(x)));
+      FLATS.forEach(function (f) { h *= sstep(f.r * 0.7, f.r * 1.15, Math.hypot(x - f.x, z - f.z)); });
+      return h;
+    }
+    TT.h = th; TT.roadZ = roadZ;
+    // Vistas de los lugares; entre cada lugar y su cámara no se plantan árboles
+    TT.views = {
+      camino: { p: V3(-8, 1.2, roadZ(-8)), lift: 4.6, v: { d: 19, az: 40, el: 20 } },
+      casita: { p: V3(-25, 1.6, -2), lift: 3.6, v: { d: 19, az: 18, el: 15 } },
+      rise: { p: V3(14, 2, -26), lift: 10, v: { d: 40, az: 205, el: 34 } },
+      pub: { p: V3(36, 2.2, 18), lift: 4.8, v: { d: 21, az: 200, el: 13 } },
+      estudio: { p: V3(-32, 1.8, 30), lift: 3.6, v: { d: 15, az: 62, el: 12 } }
+    };
+    var lines = Object.keys(TT.views).map(function (k) { var w = TT.views[k]; return { a: w.p, b: viewPos(w.p, w.v) }; });
+    function inLine(x, z) {
+      return lines.some(function (l) {
+        var dx = l.b.x - l.a.x, dz = l.b.z - l.a.z, t = Math.max(0, Math.min(1, ((x - l.a.x) * dx + (z - l.a.z) * dz) / (dx * dx + dz * dz)));
+        return Math.hypot(x - l.a.x - dx * t, z - l.a.z - dz * t) < 5;
+      });
+    }
+    function on(grp, obj, x, z, ry, s) { obj.position.set(x, th(x, z), z); obj.rotation.y = ry || 0; obj.scale.multiplyScalar(s === undefined ? FIG : s); grp.add(obj); return obj; }
+    function grp(from, to) { var g = new THREE.Group(); tierra.add(g); return gate(g, from, to); }
+    function box(g, w, h, d, m, x, y, z, ry) { var o = part(g, new THREE.BoxGeometry(w, h, d), m, [x, y, z], null, [0, ry || 0, 0]); o.receiveShadow = true; return o; }
+
+    // Cielo de anochecer: una cúpula con franja cálida en el horizonte
+    var skyG = new THREE.SphereGeometry(500, 32, 16), sp = skyG.attributes.position, sc = new Float32Array(sp.count * 3);
+    var stops = [[-1, 0x3d4652], [-0.02, 0x6a6878], [0.01, 0xf2b27e], [0.06, 0xd7a08e], [0.17, 0x9a98ae], [0.45, 0x4d5a7e], [1, 0x323d5e]], ca = new THREE.Color(), cb = new THREE.Color();
+    for (var i = 0; i < sp.count; i++) {
+      var yy = sp.getY(i) / 500, k = 0; while (k < stops.length - 2 && yy > stops[k + 1][0]) k++;
+      ca.setHex(stops[k][1]).lerp(cb.setHex(stops[k + 1][1]), sstep(stops[k][0], stops[k + 1][0], yy));
+      sc.set([ca.r, ca.g, ca.b], i * 3);
+    }
+    skyG.setAttribute('color', new THREE.BufferAttribute(sc, 3));
+    TT.skyMat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false });
+    var sky = new THREE.Mesh(skyG, TT.skyMat); sky.rotation.y = -0.5; tierra.add(sky);
+    tierra.background = new THREE.Color(0x323d5e);
+    tierra.fog = new THREE.Fog(0x9a93a2, 150, 520);
+    TT.hemi = new THREE.HemisphereLight(0xb8c0dc, 0x56653f, 0.62); tierra.add(TT.hemi);
+    TT.sun = new THREE.DirectionalLight(0xffc48a, 0.85); TT.sun.position.set(-75, 24, -25); TT.sun.castShadow = true;
+    TT.sun.shadow.mapSize.set(1024, 1024); var c = TT.sun.shadow.camera; c.left = -64; c.right = 64; c.top = 64; c.bottom = -64; c.near = 10; c.far = 220; TT.sun.shadow.bias = -0.0008;
+    tierra.add(TT.sun);
+
+    var base = grp(1);
+    // Suelo con lomas suaves y faldas de tierra
+    var g = new THREE.PlaneGeometry(2 * TH, 2 * TH, 72, 72); g.rotateX(-Math.PI / 2);
+    var pos = g.attributes.position, col = new Float32Array(pos.count * 3), gA = new THREE.Color(0x4f7a3c), gB = new THREE.Color(0x7d9a4c), gC = new THREE.Color(0x96a05a);
+    for (i = 0; i < pos.count; i++) {
+      var x = pos.getX(i), z = pos.getZ(i), h = th(x, z); pos.setY(i, h);
+      ca.copy(gA).lerp(gB, fbm(x * 0.2 + 3, z * 0.2 + 9)).lerp(gC, sstep(1, 4, h) * 0.6);
+      col.set([ca.r, ca.g, ca.b], i * 3);
+    }
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.computeVertexNormals();
+    var ground = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1 })); ground.receiveShadow = true; base.add(ground);
+    var soil = mat(0x3e3226, 1, 0, { side: THREE.DoubleSide });
+    [[-TH, -TH, TH, -TH], [-TH, TH, TH, TH], [-TH, -TH, -TH, TH], [TH, -TH, TH, TH]].forEach(function (e) {
+      var N = 72, P = new Float32Array((N + 1) * 6), idx = [];
+      for (var j = 0; j <= N; j++) { var xx = lerp(e[0], e[2], j / N), zz = lerp(e[1], e[3], j / N); P.set([xx, th(xx, zz), zz, xx, -4, zz], j * 6); if (j < N) idx.push(2 * j, 2 * j + 1, 2 * j + 2, 2 * j + 2, 2 * j + 1, 2 * j + 3); }
+      var sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(P, 3)); sg.setIndex(idx); sg.computeVertexNormals(); base.add(new THREE.Mesh(sg, soil));
+    });
+    // Camino mojado, sendero a la verja y a la casita
+    var mud = mat(0x8c7a62, 0.55, 0.05), road = [];
+    for (x = -TH; x <= TH; x += 1) road.push(V3(x, 0, roadZ(x)));
+    base.add(ribbon(road, 2.6, th, mud));
+    base.add(ribbon([V3(14, 0, roadZ(14) - 1), V3(14, 0, -5), V3(14, 0, -13)], 1.8, th, mud));
+    base.add(ribbon([V3(-25, 0, roadZ(-25) - 1), V3(-25, 0, 0.6)], 1.1, th, mud));
+
+    // Setos a los lados del camino, con huecos donde salen los senderos
+    var hedge = [], HC = new THREE.Color();
+    function hedgeRun(x0, z0, x1, z1, hgt, w) {
+      var n = Math.max(1, Math.round(Math.hypot(x1 - x0, z1 - z0) / 1.8));
+      for (var j = 0; j < n; j++) { var t = (j + 0.5) / n; hedge.push({ x: lerp(x0, x1, t), z: lerp(z0, z1, t), l: Math.hypot(x1 - x0, z1 - z0) / n + 0.25, h: hgt * (0.9 + R() * 0.2), w: w, a: Math.atan2(z1 - z0, x1 - x0) }); }
+    }
+    function roadHedge(side, gaps) {
+      for (var xx = -TH + 1; xx < TH - 1; xx += 1.8) {
+        var mid = xx + 0.9; if (gaps.some(function (gp) { return mid > gp[0] && mid < gp[1]; })) continue;
+        hedgeRun(xx, roadZ(xx) + side * 2.6, xx + 1.8, roadZ(xx + 1.8) + side * 2.6, 1.3, 0.9);
+      }
+    }
+    roadHedge(-1, [[-27.5, -22.5], [11.8, 16.2]]); roadHedge(1, [[32.5, 39.5]]);
+    // El seto alto de The Rise, con la verja en medio
+    hedgeRun(-4, -5, 12.4, -5, 3.3, 1.3); hedgeRun(15.6, -5, 34, -5, 3.3, 1.3);
+    hedgeRun(-4, -5, -4, -43, 3.3, 1.3); hedgeRun(34, -5, 34, -43, 3.3, 1.3); hedgeRun(-4, -43, 34, -43, 3.3, 1.3);
+    var layerSave = layer; layer = base;
+    instanced(new THREE.BoxGeometry(1, 1, 1), mat(0xffffff, 1, 0, { flatShading: true }), hedge, function (hd, j, m) {
+      dummy.position.set(hd.x, th(hd.x, hd.z) + hd.h / 2 - 0.1, hd.z); dummy.rotation.set(0, -hd.a, 0); dummy.scale.set(hd.l, hd.h, hd.w);
+      m.setColorAt(j, HC.setHSL(0.27 + R() * 0.04, 0.42, 0.2 + R() * 0.07));
+    });
+    // Árboles sueltos
+    var trees = [];
+    for (var tr = 0; tr < 400 && trees.length < 26; tr++) {
+      x = -42 + R() * 84; z = -42 + R() * 84;
+      if (Math.abs(z - roadZ(x)) < 6 || inLine(x, z) || (x > -8 && x < 38 && z < -1) || FLATS.some(function (f) { return Math.hypot(x - f.x, z - f.z) < f.r + 3; })) continue;
+      trees.push({ x: x, z: z, y: th(x, z), h: 3.5 + R() * 3, r: 2 + R() * 1.6 });
+    }
+    var tg = new THREE.CylinderGeometry(0.22, 0.34, 1, 6); tg.translate(0, 0.5, 0);
+    instanced(tg, mat(0x4a3a2c, 1), trees, function (t) { dummy.position.set(t.x, t.y - 0.2, t.z); dummy.rotation.set(0, 0, 0); dummy.scale.set(1, t.h, 1); });
+    instanced(new THREE.IcosahedronGeometry(1, 1), mat(0xffffff, 1, 0, { flatShading: true }), trees, function (t, j, m) {
+      dummy.position.set(t.x, t.y + t.h + t.r * 0.5, t.z); dummy.rotation.set(R(), R() * 6, 0); dummy.scale.set(t.r, t.r * 1.1, t.r);
+      m.setColorAt(j, HC.setHSL(0.24 + R() * 0.06, 0.38, 0.24 + R() * 0.08));
+    });
+    layer = layerSave;
+
+    // The Rise: casa grande con dependencias y una chimenea alta detrás
+    var stone = mat(0xb9a88d, 0.95, 0, { flatShading: true }), slate = mat(0x4b4852, 0.8, 0, { flatShading: true }), brick = mat(0x8a4b3a, 0.95, 0, { flatShading: true });
+    var winM = mat(0x1d1c24, 0.4), lit = new THREE.MeshBasicMaterial({ color: 0xffcf7a });
+    box(base, 16, 7, 10, stone, 14, 3.5, -18);
+    var rf = part(base, roofGeo(16.6, 10.8, 4), slate, [14, 7, -18]); rf.receiveShadow = true;
+    [8.5, 19.5].forEach(function (x) { box(base, 1.2, 3, 1.2, brick, x, 10, -18); });
+    [-1, 1].forEach(function (f) {
+      var zf = -18 + f * 5.03;
+      [8, 11, 17, 20].forEach(function (x) { [2.2, 5].forEach(function (y) { box(base, 1.3, 1.6, 0.1, x === 20 && y === 2.2 && f > 0 ? lit : winM, x, y, zf); }); });
+      box(base, 1.6, 2.6, 0.1, DARK, 14, 1.3, zf);
+    });
+    box(base, 6, 3, 5, stone, 2, 1.5, -33); part(base, roofGeo(6.4, 5.6, 1.8), slate, [2, 3, -33]);
+    box(base, 5, 3, 6, stone, 26, 1.5, -33, Math.PI / 2); part(base, roofGeo(6.4, 5.6, 1.8), slate, [26, 3, -33], null, [0, Math.PI / 2, 0]);
+    part(base, new THREE.CylinderGeometry(0.6, 0.9, 15, 8), brick, [29.5, 7.5, -39]);
+    // La verja cerrada
+    var iron = mat(0x23232a, 0.5, 0.6);
+    [12.6, 15.4].forEach(function (x) { box(base, 0.5, 3, 0.5, stone, x, 1.5, -5); });
+    for (var b = 0; b < 9; b++) part(base, new THREE.CylinderGeometry(0.04, 0.04, 2.4, 4), iron, [12.95 + b * 0.27, 1.25, -5]);
+    box(base, 2.6, 0.1, 0.08, iron, 14, 2.3, -5); box(base, 2.6, 0.1, 0.08, iron, 14, 0.4, -5);
+
+    // La casita junto al camino, con la madre en la puerta
+    var white = mat(0xe6dcc6, 0.95, 0, { flatShading: true }), thatch = mat(0x8a6a3a, 1, 0, { flatShading: true });
+    box(base, 6, 3, 5, white, -25, 1.5, -3); part(base, roofGeo(6.6, 5.8, 2.6), thatch, [-25, 3, -3]);
+    box(base, 1.1, 2, 0.1, DARK, -25, 1, -0.47); box(base, 1, 0.9, 0.1, lit, -23, 1.7, -0.47);
+    on(base, makeHuman({ coat: 0x6d4a5a, trou: 0x4a3a40, hair: 0x6b5a4a, h: 1.66, build: 0.9 }), -25, 0.3, 0);
+
+    // Capítulo 1: Ransom en el camino, con mochila; en la puerta de atrás, Weston y Devine con el muchacho
+    var c1 = grp(1, 1), walker = makeHuman(RANSOM);
+    part(walker, new THREE.BoxGeometry(0.34, 0.44, 0.22), mat(0x5d5a3a, 0.9), [0, 1.22, -0.24]);
+    on(c1, walker, -8, roadZ(-8), Math.PI / 2 - 0.15);
+    on(c1, makeHuman({ coat: 0x8a6d4a, trou: 0x5a5048, hair: 0xb08a50, h: 1.5, build: 0.85 }), 13.9, -24.6, Math.PI);
+    var fight = grp(1, 2);
+    on(fight, makeHuman(WESTON), 13.05, -24.4, Math.PI / 2 + 0.3).rotateX(0.16);
+    on(fight, makeHuman(DEVINE), 14.75, -24.5, -Math.PI / 2 - 0.3).rotateX(0.16);
+    // Capítulo 2: ahora el que forcejea es Ransom
+    on(grp(2, 2), makeHuman(RANSOM), 13.9, -24.8, Math.PI + 0.2);
+    // Desde el 3: la esfera que escondían en el patio
+    on(grp(3), makeShip(), 13, -35, 0.6, 0.9);
+
+    // Desde el 21: el pub al otro extremo del camino, con luz en las ventanas, y lluvia
+    var pub = grp(21);
+    box(pub, 9, 4.4, 6, white, 36, 2.2, 21); part(pub, roofGeo(9.6, 6.8, 2.6), slate, [36, 4.4, 21]);
+    [32.6, 35, 38.6].forEach(function (x, j) { box(pub, j === 1 ? 1.2 : 1.6, j === 1 ? 2.2 : 1.2, 0.1, j === 1 ? DARK : lit, x, j === 1 ? 1.1 : 1.8, 17.97); });
+    box(pub, 1.6, 1.2, 0.1, lit, 34, 3.4, 17.97); box(pub, 1.6, 1.2, 0.1, lit, 38, 3.4, 17.97);
+    [33, 36, 39].forEach(function (x) { box(pub, 1.5, 1.1, 0.1, lit, x, 1.9, 24.03); });
+    box(pub, 0.1, 1, 1.4, mat(0x6b3a2a, 0.8), 40.2, 3.3, 17.6);
+    var pl = new THREE.PointLight(0xffb060, 1.4, 20); pl.position.set(36, 2.4, 15.6); pub.add(pl);
+    var rp = new Float32Array(1400 * 3);
+    for (i = 0; i < 1400; i++) rp.set([(R() - 0.5) * 90, R() * 36, (R() - 0.5) * 90], i * 3);
+    var rg = new THREE.BufferGeometry(); rg.setAttribute('position', new THREE.BufferAttribute(rp, 3));
+    var rm = new THREE.PointsMaterial({ color: 0xc4cde0, size: 0.1, transparent: true, opacity: 0.5, depthWrite: false });
+    TT.rain = new THREE.Group(); TT.rain.add(new THREE.Points(rg, rm)); var r2 = new THREE.Points(rg, rm); r2.position.y = 36; TT.rain.add(r2); pub.add(TT.rain);
+
+    // Desde el 22: una casa pequeña aparte, con una ventana encendida y alguien sentado
+    var st = grp(22);
+    box(st, 5, 3, 4, white, -34, 1.5, 30); part(st, roofGeo(5.5, 4.6, 2), slate, [-34, 3, 30]);
+    box(st, 0.1, 1.5, 1.9, lit, -31.47, 1.8, 30); box(st, 1.2, 1, 0.1, lit, -34, 1.8, 32.03);
+    var sil = mat(0x2a2220, 1);
+    part(st, SPH, sil, [-31.4, 2.1, 30.15], [0.04, 0.2, 0.17]); part(st, new THREE.BoxGeometry(0.04, 0.5, 0.75), sil, [-31.4, 1.62, 30.15]);
+    box(st, 0.06, 0.12, 1.9, sil, -31.4, 1.1, 30);
+    var sl = new THREE.PointLight(0xffb060, 0.9, 9); sl.position.set(-30, 1.8, 30); st.add(sl);
+    TT.base = base;
+  })();
+
+  /* --- Los cielos: no un vacío negro, sino un espacio lleno de luz --- */
+  var cielo = new THREE.Scene(), CC = {};
+  (function () {
+    var R = mkRng(19380305);
+    cielo.background = new THREE.Color(0x0c1030);
+    // La luz llega de un lado, así la nave queda medio en luz y medio en sombra.
+    // El resplandor se dibuja algo más cerca del centro de la vista inicial, para que se vea sin girar.
+    var SUN_P = V3(600, 170, -160), GLOW_P = V3(190, 140, -560);
+    // Estrellas muy densas y nítidas, de varios tonos, y una banda más poblada
+    var tones = [0xffffff, 0xcfe0ff, 0xa8c4ff, 0xfff0c8, 0xffd2a0, 0xffc0d0], tc2 = new THREE.Color();
+    function stars(n, size, op, band) {
+      var p = new Float32Array(n * 3), cl = new Float32Array(n * 3);
+      for (var i = 0; i < n; i++) {
+        var u = band ? (R() + R() + R() - 1.5) * 0.16 : R() * 2 - 1, a = R() * 6.283, r = Math.sqrt(1 - u * u), v = V3(r * Math.cos(a), u, r * Math.sin(a));
+        if (band) v.applyAxisAngle(V3(1, 0, 0.4).normalize(), 1.05);
+        p.set([v.x * 1500, v.y * 1500, v.z * 1500], i * 3);
+        tc2.setHex(tones[Math.floor(R() * tones.length)]).multiplyScalar(0.55 + R() * 0.45); cl.set([tc2.r, tc2.g, tc2.b], i * 3);
+      }
+      var g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3)); g.setAttribute('color', new THREE.BufferAttribute(cl, 3));
+      cielo.add(new THREE.Points(g, new THREE.PointsMaterial({ size: size, sizeAttenuation: false, vertexColors: true, transparent: true, opacity: op, depthWrite: false })));
+    }
+    stars(5200, 1.5, 0.95); stars(800, 2.8, 1); stars(5000, 1.2, 0.8, true);
+    // Velos tenues de color: el fondo no es negro
+    var veil = glowTex([[0, 'rgba(150,120,255,.5)'], [0.5, 'rgba(90,80,200,.18)'], [1, 'rgba(60,60,160,0)']]);
+    [[-900, 300, -900, 1400, 0.35], [700, -400, -1000, 1200, 0.25], [-300, -700, 800, 1300, 0.3], [400, 600, 900, 1100, 0.22]].forEach(function (v) { var s = glow(veil, v[3], v[4]); s.position.set(v[0], v[1], v[2]); cielo.add(s); });
+    // El sol: un resplandor grande y cálido, que es también la luz de la escena
+    var sun = glow(glowTex([[0, 'rgba(255,255,245,1)'], [0.12, 'rgba(255,244,200,1)'], [0.3, 'rgba(255,204,110,.55)'], [0.6, 'rgba(255,170,70,.15)'], [1, 'rgba(255,150,50,0)']]), 300);
+    sun.position.copy(GLOW_P); cielo.add(sun);
+    var haze = glow(glowTex([[0, 'rgba(255,210,120,.6)'], [0.4, 'rgba(255,190,90,.2)'], [1, 'rgba(255,180,80,0)']]), 1100, 0.6); haze.position.copy(GLOW_P); cielo.add(haze);
+    cielo.add(new THREE.AmbientLight(0x2a3060, 0.8));
+    var key = new THREE.DirectionalLight(0xffd98a, 1.9); key.position.copy(SUN_P); cielo.add(key);
+    // La nave, girando muy despacio
+    CC.ship = new THREE.Group(); var sh = makeShip(); sh.position.y = -4.1; CC.ship.add(sh); CC.ship.rotation.set(0.3, 0, 0.15); cielo.add(gate(CC.ship, 3));
+    // La Tierra: azul y blanca, con una textura sencilla hecha a mano
+    var cv = document.createElement('canvas'); cv.width = 256; cv.height = 128; var cx = cv.getContext('2d'), im = cx.createImageData(256, 128);
+    for (var y = 0; y < 128; y++) for (var x = 0; x < 256; x++) {
+      var lon = x / 256 * 6.283, lat = (y / 127 - 0.5) * Math.PI, qx = Math.cos(lon) * 1.7, qz = Math.sin(lon) * 1.7;
+      // Ruido sobre la esfera (suma de tres planos), para que los continentes no salgan estirados
+      var X = Math.cos(lat) * Math.cos(lon) * 2.4, Y = Math.sin(lat) * 2.4, Z = Math.cos(lat) * Math.sin(lon) * 2.4;
+      var land = (fbm(X + 4, Y + 9) + fbm(Y + 13, Z + 2) + fbm(Z + 7, X + 21)) / 3;
+      var cloud = (fbm(X * 1.8 + 30, Y * 1.8 + 5) + fbm(Y * 1.8 + 3, Z * 1.8 + 40) + fbm(Z * 1.8 + 17, X * 1.8 + 11)) / 3;
+      var r = 34, gg = 92, bb = 176;
+      if (land > 0.52) { var t = sstep(0.52, 0.6, land); r = lerp(64, 120, t * 0.5); gg = lerp(118, 126, t); bb = lerp(64, 74, t); }
+      var cw = sstep(0.5, 0.6, cloud) * 0.92 + sstep(0.8, 0.95, Math.abs(lat) / 1.5708);
+      cw = Math.min(1, cw);
+      var o = (y * 256 + x) * 4; im.data[o] = lerp(r, 245, cw); im.data[o + 1] = lerp(gg, 248, cw); im.data[o + 2] = lerp(bb, 255, cw); im.data[o + 3] = 255;
+    }
+    cx.putImageData(im, 0, 0);
+    var et = new THREE.CanvasTexture(cv);
+    CC.earth = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), new THREE.MeshStandardMaterial({ map: et, roughness: 0.75, emissive: 0x0a1a38 }));
+    CC.earth.rotation.z = 0.4; cielo.add(gate(CC.earth, 3));
+    CC.atmo = glow(glowTex([[0, 'rgba(120,170,255,0)'], [0.72, 'rgba(120,170,255,0)'], [0.77, 'rgba(140,190,255,.6)'], [0.86, 'rgba(110,160,255,.15)'], [1, 'rgba(90,140,255,0)']]), 1); cielo.add(gate(CC.atmo, 3));
+    // Malacandra: un disco ocre rojizo sin detalle
+    CC.mars = new THREE.Mesh(new THREE.SphereGeometry(1, 40, 28), new THREE.MeshStandardMaterial({ color: 0xc8693f, roughness: 1, emissive: 0x2a0e06 }));
+    cielo.add(gate(CC.mars, 5));
+    CC.marsGlow = glow(glowTex([[0, 'rgba(255,170,120,.9)'], [0.25, 'rgba(255,140,90,.35)'], [1, 'rgba(255,120,80,0)']]), 1); cielo.add(gate(CC.marsGlow, 5));
+    // La Luna, solo en el regreso
+    CC.moon = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 22), new THREE.MeshStandardMaterial({ color: 0xa6a4a8, roughness: 1 }));
+    cielo.add(gate(CC.moon, 21, 21));
+  })();
+  // Tamaño y distancia de la Tierra, Malacandra y la Luna según el capítulo: [x, y, z, radio]
+  var SKY_AT = {
+    3: { earth: [-58, -20, -95, 42] },
+    4: { earth: [-95, -10, -220, 22] },
+    5: { earth: [-140, -4, -380, 7], mars: [150, 15, -440, 3] },
+    6: { earth: [-140, -4, -380, 7], mars: [52, -22, -105, 30] },
+    21: { earth: [-60, -16, -120, 34], mars: [170, 20, -480, 3.5], moon: [-28, -6, -60, 5] }
+  };
+  function skyNowAt() { return SKY_AT[CH <= 3 ? 3 : CH <= 6 ? CH : CH <= 20 ? 6 : 21]; }
+  function bodyPos(k) { var a = skyNowAt()[k]; return a ? V3(a[0], a[1], a[2]) : V3(0, 0, -400); }
+  function bodyR(k) { var a = skyNowAt()[k]; return a ? a[3] : 1; }
+  function layoutSky() {
+    var L = skyNowAt();
+    [['earth', CC.earth], ['mars', CC.mars], ['moon', CC.moon]].forEach(function (b) {
+      var a = L[b[0]]; if (!a) return;
+      b[1].position.set(a[0], a[1], a[2]); b[1].scale.setScalar(a[3]);
+    });
+    CC.atmo.position.copy(CC.earth.position); CC.atmo.scale.setScalar(CC.earth.scale.x * 2.6);
+    if (CC.mars.scale.x < 5) CC.mars.visible = false;   // de lejos, Malacandra es solo un punto de luz
+    CC.marsGlow.position.copy(CC.mars.position); CC.marsGlow.scale.setScalar(Math.max(CC.mars.scale.x * 3, 26));
+  }
+  // Vista que mira un cuerpo desde el lado de la nave, algo corrida hacia el sol para verlo iluminado
+  var SUN_DIR = V3(600, 170, -160).normalize();
+  function bodyView(k, f) { var p = bodyPos(k), r = bodyR(k), d = p.clone().negate().normalize().addScaledVector(SUN_DIR, 0.9).normalize(); return { p: p, lift: r * 1.08, cam: p.clone().addScaledVector(d, r * f).add(V3(0, r * 0.35, 0)) }; }
+
   /* ---------- Cámara, controles y etiquetas ---------- */
   var camera = new THREE.PerspectiveCamera(45, 1, 0.3, 2400);
   var controls = new THREE.OrbitControls(camera, canvas);
@@ -1442,12 +1864,23 @@
     cuevas: E.vCuevas,
     monolitos: { p: V3(AV0 + 4.8, gy(AV0 + 4.8, 0) + 2.5, 0), lift: 4.5, v: { d: 26, az: -122, el: 16 }, near: true },
     kanaka: { p: V3(KX + 2, gy(KX + 2, KZ) + 1.2, KZ), lift: 3.2, v: { d: 14, az: -160, el: 18 }, near: true },
-    oyarsa: { p: V3(OYX - 1.5, gy(OYX - 1.5, 0) + 3.5, 0), lift: 7.5, v: { d: 25, az: -96, el: 13 }, near: true }
+    oyarsa: { p: V3(OYX - 3, gy(OYX - 3, 0) + 2.5, 0), lift: 8.5, v: { d: 30, az: -112, el: 34 }, near: true },
+    // Inglaterra
+    camino: TT.views.camino, casita: TT.views.casita, rise: TT.views.rise, pub: TT.views.pub, estudio: TT.views.estudio,
+    // Los cielos: algunos cuerpos cambian de sitio con el capítulo
+    esfera: { p: V3(0, 0, 0), lift: 6.2, v: { d: 20, az: 30, el: 14 } },
+    disco: function () { return bodyView('earth', 3.1); },
+    // Desde el lado del sol: la nave entera bañada en luz, con el cielo lleno detrás
+    cielos: function () { return { p: V3(10, 44, -150), lift: 0, cam: V3(17, 5, -2), t: V3(0, 0, 0) }; },
+    destino: function () { return CH < 6 ? { p: bodyPos('mars'), lift: 10, cam: V3(-12, 3, 18), t: bodyPos('mars') } : bodyView('mars', 3.1); }
   };
   // Algunos lugares cambian de sitio con el capítulo: Meldilorn pasa del borde del mapa a la cuenca
   var SPOT_LATE = { meldilorn: { from: 16, s: { p: V3(MX, 6, MZ), lift: 36, v: { d: 125, az: -78, el: 24 } } } };
-  function spotOf(id) { var a = SPOT_LATE[id]; return a && CH >= a.from ? a.s : SPOT[id]; }
-  var HOME = { world: { t: V3(0, 6, -8), v: { d: 235, az: -45, el: 28 } }, gal: { t: V3(1, 2.5, 0) } };
+  function spotOf(id) { var a = SPOT_LATE[id], s = a && CH >= a.from ? a.s : SPOT[id]; return typeof s === 'function' ? s() : s; }
+  var HOME = { world: { t: V3(0, 6, -8), v: { d: 235, az: -45, el: 28 } }, gal: { t: V3(1, 2.5, 0) },
+    tierra: { t: V3(2, 0, -8), v: { d: 108, az: 22, el: 27 } }, cielo: { t: V3(-6, 0, -20), v: { d: 58, az: 0, el: 6 } } };
+  // En pantallas estrechas las escenas pequeñas se miran desde más lejos
+  function homeSmall(h) { var k = Math.min(1.9, Math.max(1, 1.45 / Math.max(camera.aspect, 0.5))); return { t: h.t, v: { d: h.v.d * k, az: h.v.az, el: h.v.el } }; }
   // Con el bloque este, la vista general encuadra los dos bloques; en pantallas altas se aleja un poco más
   function homeWorld() {
     if (CH < 16) return HOME.world;
@@ -1463,27 +1896,34 @@
     labelsEl.appendChild(b); labels.push({ el: b, mode: m, id: id, pos: pos });
   }
   // Una etiqueta por ítem; applyChapter actualiza su texto y la oculta si el ítem aún no existe
-  PLACES.forEach(function (pl) { var s = spotOf(pl.id); addLabel('world', pl.id, '', s.p.clone().setY(s.p.y + s.lift)); if (s.near) labels[labels.length - 1].near = true; });
+  PLACES.forEach(function (pl) {
+    var s = spotOf(pl.id); addLabel('world', pl.id, '', s.p.clone().setY(s.p.y + s.lift));
+    var L = labels[labels.length - 1]; L.scene = pl.scene || 'mal'; if (s.near) L.near = true;
+  });
   FOLK.forEach(function (f) { var g = figs[f.id]; addLabel('gal', f.id, '', V3(g.x, g.h + 0.3 + (f.id === 'wd' ? 0.75 : 0), 0)); });
   for (var ti = 1; ti <= 6; ti++) { var te = document.createElement('div'); te.className = 'tick'; te.textContent = ti + ' m'; te.hidden = true; labelsEl.appendChild(te); labels.push({ el: te, mode: 'gal', tick: true, pos: V3(RULER_X - 0.12, ti, 0) }); }
 
   /* --- Ransom está aquí ---
      HERE: capítulo -> clave de escena. HERE_AT: clave -> { scene, place, p }.
-     scene es la escena 3D donde va el marcador ('world' por ahora); place es el lugar del panel. */
-  var HERE = { 7: 'nave', 8: 'rebano', 9: 'orilla', 10: 'aldea', 11: 'aldea', 12: 'aldea', 13: 'caza', 14: 'torre', 15: 'torre', 16: 'cruce', 17: 'kanaka', 18: 'oyarsa', 19: 'oyarsa', 20: 'oyarsa' };
+     scene es la escena de "El mundo" donde va el marcador; place es el lugar del panel. */
+  var HERE = { 1: 'camino', 2: 'rise', 3: 'esfera', 4: 'esfera', 5: 'esfera', 6: 'esfera', 21: 'esfera', 22: 'pub', 7: 'nave', 8: 'rebano', 9: 'orilla', 10: 'aldea', 11: 'aldea', 12: 'aldea', 13: 'caza', 14: 'torre', 15: 'torre', 16: 'cruce', 17: 'kanaka', 18: 'oyarsa', 19: 'oyarsa', 20: 'oyarsa' };
   function atGround(x, z, h) { return V3(x, gy(x, z) + h, z); }
   var HERE_AT = {
-    nave: { scene: 'world', place: 'nave', p: atGround(westX(SHIP_Z + 6, 1.2), SHIP_Z + 6, 4.6) },
-    rebano: { scene: 'world', place: 'rebano', p: atGround(westX(HERD_Z + 3, 3), HERD_Z + 3, 4.6) },
-    orilla: { scene: 'world', place: 'handramit', p: atGround(eastX(VZ - 1.9, 3.4), VZ - 1.9, 4.4) },
-    aldea: { scene: 'world', place: 'aldea', p: atGround(eastX(VZ - 1.9, 3.4), VZ - 1.9, 4.4) },
-    caza: { scene: 'world', place: 'hnakra', p: V3(lakeX + 7.5, 4.6, LAKE_Z + 7) },
-    torre: { scene: 'world', place: 'torre', p: V3(caveX - 5.6, caveY + 4.4, AZ + 0.4) },
-    cruce: { scene: 'world', place: 'cruce', p: V3(E.cruceR.x, E.cruceR.y + 3.4, E.cruceR.z) },
-    kanaka: { scene: 'world', place: 'kanaka', p: E.kanakaR.clone().setY(E.kanakaR.y + 4.4) },
-    oyarsa: { scene: 'world', place: 'oyarsa', p: E.oyR.clone().setY(E.oyR.y + 4.4) }
+    camino: { scene: 'tierra', place: 'camino', p: V3(-8, TT.h(-8, TT.roadZ(-8)) + 3.4, TT.roadZ(-8)) },
+    rise: { scene: 'tierra', place: 'rise', p: V3(13.9, 3.4, -24.8) },
+    esfera: { scene: 'cielo', place: 'esfera', p: V3(0, 7.4, 0) },
+    pub: { scene: 'tierra', place: 'pub', p: V3(36, 6, 15.4) },
+    nave: { scene: 'mal', place: 'nave', p: atGround(westX(SHIP_Z + 6, 1.2), SHIP_Z + 6, 4.6) },
+    rebano: { scene: 'mal', place: 'rebano', p: atGround(westX(HERD_Z + 3, 3), HERD_Z + 3, 4.6) },
+    orilla: { scene: 'mal', place: 'handramit', p: atGround(eastX(VZ - 1.9, 3.4), VZ - 1.9, 4.4) },
+    aldea: { scene: 'mal', place: 'aldea', p: atGround(eastX(VZ - 1.9, 3.4), VZ - 1.9, 4.4) },
+    caza: { scene: 'mal', place: 'hnakra', p: V3(lakeX + 7.5, 4.6, LAKE_Z + 7) },
+    torre: { scene: 'mal', place: 'torre', p: V3(caveX - 5.6, caveY + 4.4, AZ + 0.4) },
+    cruce: { scene: 'mal', place: 'cruce', p: V3(E.cruceR.x, E.cruceR.y + 3.4, E.cruceR.z) },
+    kanaka: { scene: 'mal', place: 'kanaka', p: E.kanakaR.clone().setY(E.kanakaR.y + 4.4) },
+    oyarsa: { scene: 'mal', place: 'oyarsa', p: E.oyR.clone().setY(E.oyR.y + 4.4) }
   };
-  var hereScene = null;
+  var SC3 = { mal: world, tierra: tierra, cielo: cielo };
   var marker = new THREE.Mesh(new THREE.OctahedronGeometry(0.42, 0), new THREE.MeshBasicMaterial({ color: 0xe6b655, fog: false }));
   marker.scale.set(1, 1.5, 1); marker.visible = false; world.add(marker);
   var hereEl = document.createElement('div'); hereEl.className = 'here'; hereEl.textContent = 'Ransom está aquí'; hereEl.hidden = true; labelsEl.appendChild(hereEl);
@@ -1496,20 +1936,24 @@
     sunFor(both);
     world.fog.near = both ? 700 : 320; world.fog.far = both ? 1800 : 1100;
     limits();
+    layoutSky();
+    var night = CH >= 21;   // de vuelta en Inglaterra ya es de noche
+    TT.skyMat.color.setRGB(night ? 0.5 : 1, night ? 0.53 : 1, night ? 0.66 : 1);
+    tierra.fog.color.setHex(night ? 0x4a4c5c : 0x9a93a2);
+    TT.sun.intensity = night ? 0.25 : 0.85; TT.hemi.intensity = night ? 0.4 : 0.62;
     labels.forEach(function (L) {
       if (!L.id) return;
       var v = ver(findIn(L.mode === 'world' ? PLACES : FOLK, L.id));
       L.off = !v || (L.mode === 'gal' && !figs[L.id].obj.visible);
       if (v) { L.el.textContent = L.id === 'pfifl' && CH < 17 ? 'Pfifltriggi ?' : v.name; L.el.classList.toggle('locked', !!v.locked); }
-      if (L.mode === 'world' && SPOT_LATE[L.id]) { var s = spotOf(L.id); L.pos.copy(s.p).setY(s.p.y + s.lift); }
+      if (L.mode === 'world') { var s = spotOf(L.id); L.pos.copy(s.p).setY(s.p.y + s.lift); }
       L.el.setAttribute('aria-pressed', sel[L.mode] === L.id ? 'true' : 'false');
       L.occ = false;
     });
     var h = HERE_AT[HERE[CH]] || null;
-    hereScene = h ? h.scene : null;
-    marker.visible = hereScene === 'world';
-    hereLab.off = !marker.visible;
-    if (h) { marker.position.copy(h.p); hereLab.pos.copy(h.p); hereLab.pos.y -= 0.75; }
+    marker.visible = !!h;
+    hereLab.off = !h; hereLab.scene = h ? h.scene : null;
+    if (h) { SC3[h.scene].add(marker); marker.position.copy(h.p); hereLab.pos.copy(h.p); hereLab.pos.y -= 0.75; }
   }
 
   var fly = null;
@@ -1521,21 +1965,33 @@
   canvas.addEventListener('pointerdown', function () { if (fly) { fly = null; controls.enabled = true; } });
   canvas.addEventListener('wheel', function () { if (fly) { fly = null; controls.enabled = true; } }, { passive: true });
 
+  function camKey() { return mode === 'world' ? scn : 'gal'; }
   function limits() {
-    if (mode === 'world') { controls.minDistance = 6; controls.maxDistance = CH >= 16 ? 760 : 360; controls.maxPolarAngle = 1.52; }
+    var k = camKey();
+    if (k === 'mal') { controls.minDistance = 6; controls.maxDistance = CH >= 16 ? 760 : 360; controls.maxPolarAngle = 1.52; }
+    else if (k === 'tierra') { controls.minDistance = 4; controls.maxDistance = 190; controls.maxPolarAngle = 1.5; }
+    else if (k === 'cielo') { controls.minDistance = 6; controls.maxDistance = 900; controls.maxPolarAngle = Math.PI; }
     else { controls.minDistance = 2; controls.maxDistance = 70; controls.maxPolarAngle = 1.56; }
   }
   function goHome(animated) {
-    var t, p;
-    if (mode === 'world') { var hw = homeWorld(); t = hw.t.clone(); p = viewPos(t, hw.v); } else { t = HOME.gal.t.clone(); p = galHome(); }
+    var t, p, k = camKey();
+    if (k === 'gal') { t = HOME.gal.t.clone(); p = galHome(); }
+    else { var hw = k === 'mal' ? homeWorld() : homeSmall(HOME[k]); t = hw.t.clone(); p = viewPos(t, hw.v); }
     if (animated) flyTo(p, t); else { camera.position.copy(p); controls.target.copy(t); controls.update(); }
   }
-  var saved = { world: null, gal: null };
+  // Cada escena guarda su propia cámara
+  var saved = {};
+  function restoreCam() { var sv = saved[camKey()]; limits(); if (sv) { camera.position.copy(sv.p); controls.target.copy(sv.t); controls.update(); } else goHome(false); }
   setModeHook = function (m) {
     fly = null; controls.enabled = true;
-    saved[mode] = { p: camera.position.clone(), t: controls.target.clone() };
-    mode = m; limits();
-    if (saved[m]) { camera.position.copy(saved[m].p); controls.target.copy(saved[m].t); controls.update(); } else goHome(false);
+    saved[camKey()] = { p: camera.position.clone(), t: controls.target.clone() };
+    mode = m; restoreCam();
+  };
+  sceneHook = function (prev) {
+    if (mode !== 'world') return;
+    fly = null; controls.enabled = true;
+    saved[prev] = { p: camera.position.clone(), t: controls.target.clone() };
+    restoreCam();
   };
   onSelect = function (id) {
     labels.forEach(function (L) { if (L.id && L.mode === mode) L.el.setAttribute('aria-pressed', L.id === id ? 'true' : 'false'); });
@@ -1543,6 +1999,7 @@
     if (mode === 'world') {
       var s = spotOf(id);
       if (s.star) { var t0 = V3(0, 10, 0); flyTo(viewPos(t0, { d: 300, az: -45, el: 12 }), t0, 1800); }
+      else if (s.cam) flyTo(s.cam.clone(), (s.t || s.p).clone(), 1600);
       else flyTo(viewPos(s.p, s.v), s.p.clone());
     } else {
       var g = figs[id]; if (!g.obj.visible) return;
@@ -1573,12 +2030,12 @@
     var recheck = (tickN++ % 8) === 0;
     for (var i = 0; i < labels.length; i++) {
       var L = labels[i];
-      if (L.mode !== mode || L.off) { L.el.hidden = true; continue; }
+      if (L.mode !== mode || L.off || (L.mode === 'world' && L.scene !== scn)) { L.el.hidden = true; continue; }
       if (L.id === 'thulcandra') { if (skyT < 0.4) { L.el.hidden = true; continue; } }
       else if (L.mode === 'world') {
         // Los lugares pequeños dentro de Meldilorn solo se rotulan de cerca, para no amontonar etiquetas
         if (L.near && sel.world !== L.id && camera.position.distanceTo(L.pos) > 150) { L.el.hidden = true; continue; }
-        if (recheck) L.occ = occluded(L.pos); if (L.occ && sel.world !== L.id) { L.el.hidden = true; continue; } }
+        if (recheck) L.occ = scn === 'mal' && occluded(L.pos); if (L.occ && sel.world !== L.id) { L.el.hidden = true; continue; } }
       pv.copy(L.pos).project(camera);
       if (pv.z > 1 || pv.z < -1 || Math.abs(pv.x) > 1.02 || Math.abs(pv.y) > 1.02) { L.el.hidden = true; continue; }
       var x = (pv.x * 0.5 + 0.5) * W, y = (-pv.y * 0.5 + 0.5) * H;
@@ -1607,10 +2064,13 @@
       if (figs.eldil.obj.userData.spin) figs.eldil.obj.userData.spin.rotation.y = tsec * 0.8;
       if (figs.oyarsa.obj.userData.spin) figs.oyarsa.obj.userData.spin.rotation.y = tsec * 0.5;
       if (marker.visible) { marker.rotation.y = tsec * 1.2; marker.position.y = HERE_AT[HERE[CH]].p.y + 0.25 * Math.sin(tsec * 2); }
+      if (mode === 'world' && scn === 'cielo') { CC.ship.rotation.y += dt * 0.06; CC.earth.rotation.y += dt * 0.02; }
+      if (mode === 'world' && scn === 'tierra' && CH >= 21) TT.rain.position.y = -((tsec * 20) % 36);
     }
-    if (mode === 'world') {
+    if (mode === 'world' && scn !== 'mal') renderer.render(scn === 'tierra' ? tierra : cielo, camera);
+    else if (mode === 'world') {
       var y = camera.position.y;
-      // Antes del capítulo 7 no hay mundo: cielo oscuro con estrellas
+      // Sin capítulo elegido no se muestra nada: cielo oscuro con estrellas
       skyT = CH < 7 ? 1 : 0.55 * sstep(8, 30, y) + 0.45 * sstep(30, 92, y);
       skyNow.copy(skyLow).lerp(skyHigh, skyT);
       world.background.copy(skyNow); world.fog.color.copy(skyNow);
