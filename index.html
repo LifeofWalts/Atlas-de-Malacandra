@@ -1,1 +1,32 @@
-Versión iNICIAL
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atlas de Malacandra</title>
+<style>
+  html { color-scheme: dark; }
+  body { margin: 0; background: #1c1222; color: #f8e9ec; font: 16px system-ui, sans-serif; }
+  #cargando { padding: 24px; }
+</style>
+</head>
+<body>
+<p id="cargando">Cargando Malacandra…</p>
+<script>
+  // malacandra.html es un fragmento sin doctype (formato de artefacto).
+  // Esta pagina lo descarga y lo envuelve en un documento completo,
+  // asi hay una sola fuente y funciona en GitHub Pages y en el celular.
+  var cabeza = '<!doctype html><html lang="es"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">' +
+    '<style>html{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>' +
+    '</head><body>';
+  fetch('malacandra.html')
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+    .then(function (pagina) { document.open(); document.write(cabeza + pagina + '</body></html>'); document.close(); })
+    .catch(function () {
+      document.getElementById('cargando').textContent =
+        'No se pudo cargar la escena. Esta página necesita servirse por http (GitHub Pages o un servidor local), no abrirse como archivo.';
+    });
+</script>
+</body>
+</html>

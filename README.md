@@ -12,7 +12,7 @@ Se construye de a poco, al ritmo de la lectura. **Hoy cubre hasta el capítulo 1
 
 ## Cómo está hecho
 
-Todo vive en un solo archivo, `malacandra.html`:
+Toda la escena vive en un solo archivo, `malacandra.html`:
 
 | Parte | Tecnología |
 | --- | --- |
@@ -29,5 +29,6 @@ No hay paso de compilación, ni dependencias que instalar, ni archivos de modelo
 ## Notas
 
 - `malacandra.html` es un fragmento sin `<!doctype>` ni `<head>`, porque se publica como artefacto de Claude y la plataforma le agrega ese envoltorio.
+- `index.html` descarga ese fragmento y lo envuelve en un documento completo. Es la página de entrada en GitHub Pages. Necesita servirse por http, no abrirse como archivo. Para verla en tu máquina: `python3 -m http.server` y abre `http://localhost:8000`.
 - Las figuras son una interpretación de las descripciones del libro, no ilustraciones oficiales.
 - Los textos se escribieron de memoria. Alguna referencia de capítulo puede estar corrida por uno.
