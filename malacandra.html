@@ -57,13 +57,50 @@
 
   .listwrap { display: flex; flex-direction: column; gap: 8px; }
   .listwrap h3 { margin: 0; font-size: .76rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
-  #list { display: flex; flex-wrap: wrap; gap: 6px; }
+  #list { position: relative; display: flex; flex-wrap: wrap; gap: 6px; }   /* relative: el texto .sr de los chips no desborda la página */
   #list button { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 4px 12px; font-size: .9rem; white-space: nowrap; }
   #list button:hover { border-color: var(--rose); }
   #list button[aria-pressed="true"] { background: var(--gold); border-color: var(--gold); color: var(--night); font-weight: 700; }
   #list button.locked { border-style: dashed; color: var(--muted); }
   .hint { margin: 0; font-size: .86rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
   #nogl { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--paper); }
+  [hidden] { display: none !important; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  select { font: inherit; color: var(--paper); background: var(--night); border: 1px solid var(--line); border-radius: 8px; height: 34px; padding: 0 8px; min-width: 0; }
+  .btn { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 5px 14px; font-size: .9rem; }
+  .btn:hover { border-color: var(--rose); }
+  .btn.primary { background: var(--gold); border-color: var(--gold); color: var(--night); font-weight: 700; }
+
+  /* Selector de capítulo */
+  .chap { flex: none; display: flex; flex-direction: column; gap: 8px; }
+  .chaprow { display: flex; align-items: center; gap: 6px; }
+  .chaprow label { font-size: .76rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-right: auto; }
+  .chaprow .step { width: 34px; height: 34px; flex: none; border: 1px solid var(--line); background: var(--night); border-radius: 8px; font-size: 1.15rem; line-height: 1; padding: 0; }
+  .chaprow .step:hover:not(:disabled) { border-color: var(--rose); }
+  .chaprow .step:disabled { opacity: .35; cursor: default; }
+  .chaprow .of { color: var(--muted); font-size: .9rem; white-space: nowrap; }
+  .chask { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--gold); border-radius: 10px; background: var(--ink-2); }
+  .chask p { margin: 0; font-size: .95rem; }
+  .chask div { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* Primera visita */
+  #first { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(28, 18, 34, .6); }
+  .firstcard { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 10px; padding: 20px; background: var(--ink); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 12px 40px rgba(0, 0, 0, .45); }
+  .firstcard h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 1.6rem; line-height: 1.15; }
+  .firstcard p { margin: 0; color: var(--muted); }
+  .firstcard .row { display: flex; gap: 8px; margin-top: 4px; }
+  .firstcard select { flex: 1; min-width: 0; }
+
+  /* Ransom está aquí */
+  .here { position: absolute; left: 0; top: 0; pointer-events: none; white-space: nowrap; font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--gold);
+    padding: 2px 8px 3px; border-radius: 6px; background: rgba(28, 18, 34, .8); will-change: transform; }
+  .scenes { position: relative; flex: none; display: flex; flex-wrap: wrap; gap: 6px; margin-top: -8px; }
+  .scenes button { flex: 1 1 auto; border: 1px solid var(--line); background: transparent; border-radius: 8px; padding: 4px 10px; font-size: .84rem; white-space: nowrap; color: var(--muted); }
+  .scenes button:hover { border-color: var(--rose); color: var(--paper); }
+  .scenes button[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); background: var(--ink-2); }
+  #list .dot, .scenes .dot { display: inline-block; width: 6px; height: 6px; margin-left: 7px; border-radius: 50%; background: var(--gold); vertical-align: middle; position: relative; top: -1px; }
+  #list button[aria-pressed="true"] .dot { background: var(--night); }
+  @media (max-width: 780px) { .scenes { margin-top: -4px; } .scenes button { padding: 3px 8px; font-size: .8rem; } }
 
   @media (max-width: 780px) {
     #app { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
@@ -80,15 +117,40 @@
     <div id="labels"></div>
     <div id="brand">
       <h1>Malacandra</h1>
-      <p>Hasta el capítulo 15, sin adelantar nada</p>
+      <p>Elige tu capítulo</p>
     </div>
     <div id="nogl" hidden>Este navegador no pudo iniciar WebGL, así que la escena 3D no se puede mostrar. Las fichas del panel siguen funcionando.</div>
+    <div id="first" hidden>
+      <div class="firstcard" role="dialog" aria-labelledby="first-t">
+        <h2 id="first-t">¿En qué capítulo vas?</h2>
+        <p>El atlas solo muestra lo que Ransom ya sabe en ese punto.</p>
+        <div class="row">
+          <label for="firstsel" class="sr">Capítulo</label>
+          <select id="firstsel"></select>
+          <button id="firstgo" class="btn primary">Empezar</button>
+        </div>
+      </div>
+    </div>
   </div>
   <aside id="panel">
+    <div class="chap" id="chap" hidden>
+      <div class="chaprow">
+        <label for="chsel">Capítulo</label>
+        <button id="chprev" class="step" aria-label="Capítulo anterior">&lsaquo;</button>
+        <select id="chsel"></select>
+        <button id="chnext" class="step" aria-label="Capítulo siguiente">&rsaquo;</button>
+        <span class="of">de 22</span>
+      </div>
+      <div class="chask" id="chask" hidden>
+        <p id="chmsg"></p>
+        <div><button id="chyes" class="btn primary">Sí, revelar</button><button id="chno" class="btn">Cancelar</button></div>
+      </div>
+    </div>
     <div class="tabs" role="tablist" aria-label="Vista">
       <button id="tab-world" role="tab" aria-selected="true">El mundo</button>
       <button id="tab-gal" role="tab" aria-selected="false">Habitantes</button>
     </div>
+    <div class="scenes" id="scenes" role="group" aria-label="Escena" hidden></div>
     <section id="card" aria-live="polite"></section>
     <div class="listwrap">
       <h3 id="list-title">Lugares</h3>
@@ -107,99 +169,437 @@
   var stage = $('#stage'), canvas = $('#c'), labelsEl = $('#labels');
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* ---------- Contenido (solo lo que Ransom sabe en el cap. 15) ---------- */
+  /* ---------- Contenido por capítulo ----------
+     Cada ítem es { id, from, v: [versiones] }. Existe para el lector desde "from".
+     Se muestra la última versión con from <= CH. Lo que una versión omite se hereda de la anterior. */
+  var TOTAL = 22;
+  var WHY_GRAV = ['La idea base', 'Con menos gravedad, un cuerpo puede ser mucho más alto y delgado sin romperse. Por eso todos aquí parecen estirados.'];
+  /* "El mundo" tiene tres escenas. Cada una existe desde un capítulo y tiene su propia introducción. */
+  var SCENES = [
+    { id: 'tierra', from: 1, name: 'Inglaterra' },
+    { id: 'cielo', from: 3, name: 'Los cielos' },
+    { id: 'mal', from: 7, name: 'Malacandra' }
+  ];
+  // Escena donde está Ransom en cada capítulo
+  function sceneFor(n) { return n < 1 ? 'mal' : n <= 2 || n === 22 ? 'tierra' : n <= 6 || n === 21 ? 'cielo' : 'mal'; }
   var INTRO = {
-    world: {
-      cap: 'Más allá del planeta silencioso', name: 'Un mundo de dos pisos', tag: 'Malacandra es el nombre que sus habitantes dan a Marte',
-      text: 'Arriba está el harandra: roca fría, casi sin aire. Abajo, los handramits: cañones profundos donde se juntan el aire, el agua tibia y toda la vida. Ransom aterriza en uno de ellos.',
-      why: ['La idea base', 'El planeta tiene poco aire, y el aire pesa. Se acumula en lo más hondo, igual que el agua. Por eso se vive abajo y arriba el cielo es casi negro.']
-    },
-    gal: {
-      cap: 'Los que habitan Malacandra', name: 'Hnau', tag: 'Toda criatura con razón',
-      text: 'Hay tres especies hnau: hrossa, séroni y pfifltriggi. Ninguna manda sobre las otras, y cada una hace lo que mejor sabe. Las figuras están a escala entre sí. La regla de la izquierda marca metros.',
-      why: ['La idea base', 'Con menos gravedad, un cuerpo puede ser mucho más alto y delgado sin romperse. Por eso todos aquí parecen estirados.']
-    }
+    tierra: { v: [
+      { from: 1, cap: 'Más allá del planeta silencioso', name: 'Inglaterra', tag: 'Antes del viaje',
+        text: 'Todo empieza con un hombre que camina solo al anochecer. Cerca hay una casa donde pasa algo raro.' },
+      { from: 22, tag: 'De vuelta en el planeta silencioso',
+        text: 'Ransom ha vuelto. Lo que trae es una historia que casi nadie creería.' }
+    ] },
+    cielo: { v: [
+      { from: 3, cap: 'Más allá del planeta silencioso', name: 'Los cielos', tag: 'Entre dos mundos',
+        text: 'Ransom viaja preso dentro de una esfera de metal. No sabe a dónde lo llevan ni para qué.' },
+      { from: 5,
+        text: 'Ransom viaja preso dentro de una esfera de metal. No sabe a dónde lo llevan ni para qué. Pese al miedo, el viaje le sienta bien.' },
+      { from: 21, tag: 'El camino de vuelta',
+        text: 'Ransom vuelve en la misma esfera, con Weston y Devine. Esta vez sabe a dónde va.' }
+    ] },
+    mal: { v: [
+      { from: 7, cap: 'Más allá del planeta silencioso', name: 'Un mundo desconocido', tag: 'Ransom no sabe dónde está',
+        text: 'Ransom no sabe en qué mundo ha caído. Ve agua azul, suelo rosado, un bosque púrpura y montañas como agujas. Todo parece demasiado alto y delgado.',
+        why: ['La idea base', 'Aquí las cosas pesan menos que en la Tierra. Por eso pueden estirarse hacia arriba sin caerse.'] },
+      { from: 11, name: 'Malacandra', tag: 'Así lo llaman sus habitantes',
+        text: 'Los hrossa llaman Malacandra a su mundo. De ellos Ransom aprende que hay una tierra baja, el handramit, y una tierra alta, el harandra. Aún no sabe qué planeta es.' },
+      { from: 14, name: 'Un mundo de dos pisos', tag: 'Malacandra es el nombre que sus habitantes dan a Marte',
+        text: 'Arriba está el harandra: roca fría, casi sin aire. Abajo, los handramits: cañones profundos donde se juntan el aire, el agua tibia y toda la vida. Ransom aterriza en uno de ellos.',
+        why: ['La idea base', 'El planeta tiene poco aire, y el aire pesa. Se acumula en lo más hondo, igual que el agua. Por eso se vive abajo y arriba el cielo es casi negro.'] },
+      { from: 16, name: 'Dos valles y la tierra alta', tag: 'El mapa se amplía hacia el este',
+        text: 'Ransom cruza el harandra y descubre algo nuevo. El handramit donde aterrizó no es el único: hay otros. El mapa se amplía hacia el este.' },
+      { from: 18, name: 'Malacandra, un mundo antiguo', tag: 'La tierra alta estuvo viva',
+        text: 'Oyarsa cuenta que la tierra alta estuvo viva, con aire y calor. Hoy la vida solo se sostiene en los handramits.' }
+    ] },
+    gal: { v: [
+      { from: 1, cap: 'Quién aparece', name: 'Los viajeros', tag: 'Tres hombres de la Tierra',
+        text: 'Tres hombres de la Tierra: Ransom y los dos que se lo llevan. Las figuras están a escala entre sí. La regla de la izquierda marca metros.' },
+      { from: 7, name: 'Criaturas de Malacandra', tag: 'Seres que Ransom no entiende',
+        text: 'Ransom ve seres que no entiende y les teme. Aún no sabe cuáles piensan y cuáles son bestias. Las figuras están a escala. La regla de la izquierda marca metros.',
+        why: WHY_GRAV },
+      { from: 11, cap: 'Los que habitan Malacandra', name: 'Hnau', tag: 'Toda criatura con razón',
+        text: 'Hay tres especies hnau: hrossa, séroni y pfifltriggi. Ninguna manda sobre las otras, y cada una hace lo que mejor sabe. Las figuras están a escala entre sí. La regla de la izquierda marca metros.' },
+      { from: 18,
+        text: 'Hay tres especies hnau: hrossa, séroni y pfifltriggi. Las tres obedecen a Oyarsa y ninguna gobierna a otra. Cada una hace lo que mejor sabe. Las figuras están a escala y la regla de la izquierda marca metros.' }
+    ] }
   };
+  var NEUTRAL = { cap: 'Atlas de Malacandra', name: 'Elige tu capítulo', tag: '',
+    text: 'Dime en qué capítulo vas. El atlas mostrará solo lo que Ransom ya sabe en ese punto.' };
 
+  // scene: escena de "El mundo" a la que pertenece el lugar ('mal' si no se indica)
   var PLACES = [
-    { id: 'handramit', name: 'Handramit', tag: 'La tierra baja', cap: 'Capítulos 7 a 14',
-      text: 'Un cañón enorme cortado en la superficie. Suelo cubierto de una hierba rosada y blanda, agua azul y tibia, bosques púrpura. Subiendo por su pared, Ransom entiende que los handramits son los famosos canales que se ven desde la Tierra.',
-      facts: [['Aire', 'Denso y templado'], ['Agua', 'Azul, tibia, con olas altas y estrechas'], ['Viven aquí', 'Los hrossa']] },
-    { id: 'harandra', name: 'Harandra', tag: 'La tierra alta', cap: 'Capítulos 14 y 15',
-      text: 'La verdadera superficie del planeta. Roca desnuda, frío, y un aire tan delgado que un hombre no puede respirarlo. Augray le da oxígeno a Ransom para cruzarlo.',
-      why: ['Mira el cielo', 'Sube la cámara. Cuanto más alto, menos aire hay para dispersar la luz, así que el cielo se oscurece y aparecen estrellas en pleno día.'] },
-    { id: 'nave', name: 'La nave y la cabaña', tag: 'Donde empieza todo', cap: 'Capítulos 3 a 7',
-      text: 'Una esfera de metal. Weston y Devine aterrizan junto al agua, donde ya tenían una cabaña de un viaje anterior. Aquí Ransom ve a los sorns acercarse por primera vez, se suelta y huye.',
-      facts: [['Forma', 'Esfera, se vive sobre la cara interior'], ['Tripulación', 'Weston, Devine y Ransom a la fuerza']] },
-    { id: 'bosque', name: 'Bosque púrpura', tag: 'Tallos como torres', cap: 'Capítulos 7 y 8',
-      text: 'Tallos lisos y delgadísimos, del doble de alto que un olmo, con hojas enormes y casi transparentes solo en la copa. Ransom lo cruza solo en sus primeras horas, sin saber qué se puede comer ni beber.' },
-    { id: 'agujas', name: 'Agujas verde pálido', tag: 'Las montañas del borde', cap: 'Capítulos 7 y 8',
-      text: 'Las montañas no forman lomas. Son agujas que parecen a punto de caerse. Lo mismo pasa con las olas, las plantas y los cuerpos: todo es demasiado alto para su ancho.',
-      why: ['Por qué', 'Malacandra es más pequeño que la Tierra y tira de las cosas con menos fuerza. Lo que en la Tierra se derrumbaría, aquí se sostiene.'] },
-    { id: 'rosa', name: 'Masas rosadas', tag: 'Algo sobre la tierra alta', cap: 'Capítulo 7',
-      text: 'Más allá de las agujas, Ransom ve unas formas rosadas gigantescas, como nubes quietas o la copa de una coliflor roja. Todavía no sabe qué son.' },
-    { id: 'aldea', name: 'Aldea de los hrossa', tag: 'A la orilla del agua', cap: 'Capítulos 10 a 12',
-      text: 'Chozas con forma de colmena hechas de hojas rígidas. Los hrossa viven junto al agua: navegan, pescan, cultivan y componen poesía. Aquí Ransom pasa semanas aprendiendo su lengua con Hnohra y hablando con Hyoi.',
-      facts: [['En la escena', 'Hyoi con Ransom, Hnohra, Whin y la cachorra Hrikki, que habla con un eldil']] },
-    { id: 'hnakra', name: 'Aguas del hnakra', tag: 'La caza', cap: 'Capítulo 13',
-      text: 'Cazar al hnakra es el mayor honor de un hross. Ransom va en la barca con Hyoi y Whin y lo consiguen. Justo después, un disparo de Weston mata a Hyoi, y un eldil ordena a Ransom ir a ver a Oyarsa.' },
-    { id: 'rebano', name: 'Bestias amarillas', tag: 'El rebaño de los sorns', cap: 'Capítulo 8',
-      text: 'Animales altísimos, de pelaje amarillo pálido y cuello largo, que comen las copas del bosque. Ransom los encuentra en su huida y luego oye la voz de un sorn que los guía.' },
-    { id: 'torre', name: 'Torre de Augray', tag: 'Una cueva en la pared', cap: 'Capítulos 14 y 15',
-      text: 'El camino sube por la pared del handramit hasta casi la tierra alta. Arriba, a Ransom ya le falta el aire. Augray, un sorn, lo recibe junto al fuego, le da oxígeno y le deja mirar el cielo con su instrumento.',
-      facts: [['Estás aquí', 'Capítulo 15'], ['Camino', 'La línea clara que sube desde la aldea']] },
-    { id: 'thulcandra', name: 'Thulcandra', tag: 'El planeta silencioso', cap: 'Capítulos 11 y 15',
-      text: 'Los hrossa saben que existe un mundo del que nunca llega ninguna voz. Cuando Ransom les cuenta de dónde viene, concluyen que viene de allí. Es el punto azul que aparece cuando el cielo se oscurece.' },
-    { id: 'meldilorn', name: 'Hacia Meldilorn', tag: 'Todavía no has llegado', cap: 'Más adelante', locked: true,
-      text: 'Donde vive Oyarsa, quien gobierna Malacandra. Es el destino de Ransom, al otro lado de la tierra alta. Queda fuera del mapa hasta que avances en el libro.' }
+    { id: 'camino', scene: 'tierra', from: 1, v: [
+      { from: 1, name: 'Un camino en Inglaterra', tag: 'Un caminante sin posada', cap: 'Capítulo 1',
+        text: 'Ransom recorre Inglaterra a pie en sus vacaciones. Anochece, ha llovido y nadie le da alojamiento. Sigue andando hacia el siguiente pueblo.' }
+    ] },
+    { id: 'casita', scene: 'tierra', from: 1, v: [
+      { from: 1, name: 'La casita', tag: 'Una madre preocupada', cap: 'Capítulo 1',
+        text: 'Una mujer espera a su hijo Harry, que trabaja en la casa grande y ya debería haber vuelto. Ransom promete ir a buscarlo y mandárselo.' }
+    ] },
+    { id: 'rise', scene: 'tierra', from: 1, v: [
+      { from: 1, name: 'The Rise', tag: 'La casa tras el seto', cap: 'Capítulo 1',
+        text: 'La verja está cerrada. Ransom se cuela por el seto y encuentra a dos hombres forcejeando con el muchacho. A uno lo conoce: Devine, antiguo compañero de colegio. El otro es Weston, un físico famoso.' },
+      { from: 2, cap: 'Capítulos 1 y 2',
+        text: 'Lo invitan a pasar y le dan de beber. La bebida lleva algo. Despierta a medias, intenta huir y lo derriban. Iban a llevarse al muchacho, pero Ransom les sirve mejor: nadie lo espera en meses.' },
+      { from: 3, cap: 'Capítulos 1 a 3',
+        text: 'Lo invitan a pasar y le dan de beber. La bebida lleva algo. Despierta a medias, intenta huir y lo derriban. Ransom les sirve mejor que el muchacho: nadie lo espera en meses. Lo que escondían en el patio era una nave esférica.' }
+    ] },
+    { id: 'pub', scene: 'tierra', from: 21, v: [
+      { from: 21, name: 'El pub', tag: 'Una pinta, por favor', cap: 'Capítulo 21',
+        text: 'La nave toca tierra de noche y bajo la lluvia. Ransom se aleja y poco después la esfera se deshace, como dijo Oyarsa. Camina hasta una luz, entra en un pub y pide una pinta de cerveza.' }
+    ] },
+    { id: 'estudio', scene: 'tierra', from: 22, v: [
+      { from: 22, name: 'El narrador', tag: 'Por qué esto se cuenta como novela', cap: 'Capítulo 22',
+        text: 'Quien escribe el libro conoce a Ransom, que no se llama así en realidad. Le escribió por una palabra hallada en un texto medieval: Oyarses. Ransom, que al volver llegó a dudar de todo lo vivido, le contó la historia. Deciden publicarla como ficción para que al menos algunos se acostumbren a la idea.' }
+    ] },
+    { id: 'esfera', scene: 'cielo', from: 3, v: [
+      { from: 3, name: 'La nave', tag: 'Una esfera sin arriba ni abajo', cap: 'Capítulo 3',
+        text: 'Ransom despierta en un cuarto extraño. Las paredes parecen inclinadas y el suelo se curva. La nave es una esfera y "abajo" es hacia su centro, así que se vive sobre la cara interior.',
+        why: ['Por qué', 'La nave pesa poco, y su centro es lo único que tira de quienes van dentro.'] },
+      { from: 4, cap: 'Capítulos 3 y 4',
+        text: 'Weston explica lo justo. La nave se mueve aprovechando propiedades poco conocidas de la radiación solar. Un lado mira siempre al sol y arde de calor; el otro es frío. Van a un mundo que sus habitantes llaman Malacandra.' },
+      { from: 5, cap: 'Capítulos 3 a 5',
+        text: 'Ransom oye a escondidas a sus captores. Lo llevan porque unos seres llamados sorns pidieron que les trajeran un hombre. Supone que es para un sacrificio. Esconde un cuchillo.' },
+      { from: 21, name: 'El regreso', tag: 'Noventa días', cap: 'Capítulo 21',
+        text: 'El aire y la comida van justos. El rumbo los obliga a pasar muy cerca del sol y el calor es casi insoportable. Al final la Luna se interpone y hay que corregir. Llegan casi sin nada.' }
+    ] },
+    { id: 'disco', scene: 'cielo', from: 3, v: [
+      { from: 3, name: 'El disco enorme', tag: 'No es la Luna', cap: 'Capítulo 3',
+        text: 'Por la claraboya Ransom ve un disco brillante gigantesco. Piensa que es la Luna, más grande de lo normal. No lo es. Es la Tierra, que se aleja.' },
+      { from: 21, name: 'La Tierra', tag: 'Thulcandra desde fuera', cap: 'Capítulos 3 y 21',
+        text: 'La Tierra vuelve a crecer en la claraboya. Ransom ya sabe cómo la llaman fuera, Thulcandra, y por qué calla.' }
+    ] },
+    { id: 'cielos', scene: 'cielo', from: 5, v: [
+      { from: 5, name: 'Los cielos', tag: 'No es espacio vacío', cap: 'Capítulo 5',
+        text: 'Ransom esperaba un abismo negro y muerto. Se encuentra bañado en luz, despierto y fuerte como nunca. Deja de pensar en "espacio": la palabra antigua, "los cielos", le parece más exacta.',
+        why: ['Por qué', 'Lo oscuro no es el cielo sino nuestra noche, la sombra de un mundo. Fuera de esa sombra todo es luz.'] }
+    ] },
+    { id: 'destino', scene: 'cielo', from: 5, v: [
+      { from: 5, name: 'Un punto que crece', tag: 'Malacandra', cap: 'Capítulo 5', locked: true,
+        text: 'Aún es solo una luz entre otras.' },
+      { from: 6, name: 'Malacandra se acerca', cap: 'Capítulos 5 y 6', locked: false,
+        text: 'El disco llena la claraboya. El peso vuelve poco a poco y con él el cansancio. La esfera baja y toca suelo. Ransom está a punto de pisar otro mundo.' },
+      { from: 21, name: 'Malacandra queda atrás', cap: 'Capítulos 5, 6 y 21',
+        text: 'Ahora es Malacandra la que se encoge tras la nave. Pronto vuelve a ser una luz entre otras.' }
+    ] },
+    { id: 'handramit', from: 7, v: [
+      { from: 7, name: 'El valle', tag: 'Agua tibia entre paredes', cap: 'Capítulo 7',
+        text: 'Un valle largo de suelo rosado y blando. El agua es azul y tibia, con olas altas y estrechas. Ransom huye por él sin rumbo.' },
+      { from: 9, cap: 'Capítulos 7 a 9',
+        text: 'Un valle largo de suelo rosado y blando, con agua azul y tibia. A la orilla, Ransom encuentra a una criatura negra y la oye hablar. Su curiosidad de filólogo vence al miedo. Es Hyoi.' },
+      { from: 11, name: 'Handramit', tag: 'La tierra baja', cap: 'Capítulos 7 a 11',
+        text: 'Los hrossa llaman handramit a la tierra baja donde viven. Es un valle hondo de suelo rosado y blando, con agua azul y tibia y bosques púrpura.',
+        facts: [['Aire', 'Denso y templado'], ['Agua', 'Azul, tibia, con olas altas y estrechas'], ['Viven aquí', 'Los hrossa']] },
+      { from: 14, cap: 'Capítulos 7 a 14',
+        text: 'Un cañón enorme cortado en la superficie. Suelo cubierto de una hierba rosada y blanda, agua azul y tibia, bosques púrpura. Subiendo por su pared, Ransom entiende que los handramits son los famosos canales que se ven desde la Tierra.' }
+    ] },
+    { id: 'harandra', from: 11, v: [
+      { from: 11, name: 'Harandra', tag: 'La tierra alta', cap: 'Solo de oídas', locked: true,
+        text: 'Los hrossa dicen que arriba, más allá de las paredes del valle, está la tierra alta. Ellos no viven allí. Es territorio de los séroni.' },
+      { from: 14, cap: 'Capítulo 14', locked: false,
+        text: 'La verdadera superficie del planeta. Roca desnuda, frío, y un aire tan delgado que un hombre no puede respirarlo.',
+        why: ['Mira el cielo', 'Sube la cámara. Cuanto más alto, menos aire hay para dispersar la luz, así que el cielo se oscurece y aparecen estrellas en pleno día.'] },
+      { from: 15, cap: 'Capítulos 14 y 15',
+        text: 'La verdadera superficie del planeta. Roca desnuda, frío, y un aire tan delgado que un hombre no puede respirarlo. Augray le da oxígeno a Ransom para cruzarlo.' },
+      { from: 16, cap: 'Capítulos 14 a 16',
+        text: 'La verdadera superficie del planeta. Roca desnuda, frío, y un aire tan delgado que un hombre no puede respirarlo. Augray le da oxígeno a Ransom y lo cruza llevándolo a hombros.' },
+      { from: 18, cap: 'Capítulos 14 a 18',
+        text: 'Oyarsa cuenta que hace muchísimo el señor de Thulcandra hirió a Malacandra. La tierra alta perdió su aire y su calor, y lo que vivía allí murió. Los handramits, con sus aguas tibias, se abrieron para que la vida siguiera abajo.' }
+    ] },
+    { id: 'cruce', from: 16, v: [
+      { from: 16, name: 'Cruce del harandra', tag: 'A hombros de Augray', cap: 'Capítulo 16',
+        text: 'Augray carga a Ransom en su hombro y cruza la tierra alta a grandes zancadas. Ransom respira con el oxígeno que le dio. El cielo es casi negro y se ven estrellas de día. Desde arriba, el handramit es una grieta de color en un desierto de roca.' }
+    ] },
+    { id: 'cuevas', from: 16, v: [
+      { from: 16, name: 'Cuevas de los séroni', tag: 'Los sabios preguntan', cap: 'Capítulo 16',
+        text: 'Augray lo lleva ante un sorn anciano y sus discípulos. Le preguntan por la Tierra. Lo que más los asombra es la guerra y que unos hombres usen a otros. Concluyen que allí cada uno quiere ser su propio Oyarsa.' }
+    ] },
+    { id: 'nave', from: 7, v: [
+      { from: 7, name: 'La nave y la cabaña', tag: 'Donde empieza todo', cap: 'Capítulos 3 a 7',
+        text: 'Una esfera de metal. Weston y Devine aterrizan junto al agua, donde ya tenían una cabaña de un viaje anterior. Aquí Ransom ve a los sorns acercarse por primera vez, se suelta y huye.',
+        facts: [['Forma', 'Esfera, se vive sobre la cara interior'], ['Tripulación', 'Weston, Devine y Ransom a la fuerza']] },
+      { from: 20, name: 'La partida', tag: 'De vuelta a la esfera', cap: 'Capítulos 3 a 7 y 20',
+        text: 'Oyarsa les da noventa días para llegar. Pasado ese tiempo, la nave se deshará. Los tres hombres vuelven a la esfera.' },
+      { from: 21, name: 'Donde estuvo la nave', tag: 'Solo queda la cabaña', cap: 'Capítulo 21',
+        text: 'La esfera ya partió. Queda la cabaña.', facts: null }
+    ] },
+    { id: 'bosque', from: 7, v: [
+      { from: 7, name: 'Bosque púrpura', tag: 'Tallos como torres', cap: 'Capítulos 7 y 8',
+        text: 'Tallos lisos y delgadísimos, del doble de alto que un olmo, con hojas enormes y casi transparentes solo en la copa. Ransom lo cruza solo en sus primeras horas, sin saber qué se puede comer ni beber.' }
+    ] },
+    { id: 'agujas', from: 7, v: [
+      { from: 7, name: 'Agujas verde pálido', tag: 'Las montañas del borde', cap: 'Capítulos 7 y 8',
+        text: 'Las montañas no forman lomas. Son agujas que parecen a punto de caerse. Lo mismo pasa con las olas, las plantas y los cuerpos: todo es demasiado alto para su ancho.',
+        why: ['Por qué', 'Malacandra es más pequeño que la Tierra y tira de las cosas con menos fuerza. Lo que en la Tierra se derrumbaría, aquí se sostiene.'] }
+    ] },
+    { id: 'rosa', from: 7, v: [
+      { from: 7, name: 'Masas rosadas', tag: 'Algo sobre la tierra alta', cap: 'Capítulo 7',
+        text: 'Más allá de las agujas, Ransom ve unas formas rosadas gigantescas, como nubes quietas o la copa de una coliflor roja. Todavía no sabe qué son.' },
+      { from: 16, name: 'Bosques de piedra', tag: 'Lo que fue la tierra alta', cap: 'Capítulos 7 y 16',
+        text: 'Lo que parecían nubes rosadas son los antiguos bosques de la tierra alta, convertidos en piedra. Augray le cuenta que el harandra tuvo aire y calor.',
+        why: ['Por qué', 'Sin aire ni calor nada vive arriba. Quedó solo la forma de lo que hubo.'] }
+    ] },
+    { id: 'aldea', from: 10, v: [
+      { from: 10, name: 'Aldea de los hrossa', tag: 'A la orilla del agua', cap: 'Capítulo 10',
+        text: 'Hyoi lleva a Ransom en barca durante un largo viaje hasta su aldea. Las chozas tienen forma de colmena y están hechas de hojas rígidas, junto al agua. Los hrossa lo reciben con curiosidad, sin miedo.' },
+      { from: 11, cap: 'Capítulos 10 y 11',
+        text: 'Chozas con forma de colmena hechas de hojas rígidas. Los hrossa viven junto al agua: navegan, pescan, cultivan y componen poesía. Aquí Ransom pasa semanas aprendiendo su lengua con Hnohra y hablando con Hyoi.',
+        facts: [['En la escena', 'Hyoi con Ransom, Hnohra y Whin']] },
+      { from: 12, cap: 'Capítulos 10 a 12',
+        facts: [['En la escena', 'Hyoi con Ransom, Hnohra, Whin y la cachorra Hrikki, que habla con un eldil']] }
+    ] },
+    { id: 'hnakra', from: 13, v: [
+      { from: 13, name: 'Aguas del hnakra', tag: 'La caza', cap: 'Capítulo 13',
+        text: 'Cazar al hnakra es el mayor honor de un hross. Ransom va en la barca con Hyoi y Whin y lo consiguen. Justo después, un disparo de Weston mata a Hyoi, y un eldil ordena a Ransom ir a ver a Oyarsa.' }
+    ] },
+    { id: 'rebano', from: 8, v: [
+      { from: 8, name: 'Bestias amarillas', tag: 'El rebaño de los sorns', cap: 'Capítulo 8',
+        text: 'Animales altísimos, de pelaje amarillo pálido y cuello largo, que comen las copas del bosque. Ransom los encuentra en su huida y luego oye la voz de un sorn que los guía.' }
+    ] },
+    { id: 'torre', from: 14, v: [
+      { from: 14, name: 'Torre de Augray', tag: 'Una cueva en la pared', cap: 'Capítulo 14',
+        text: 'El camino sube por la pared del handramit. Con la altura el aire se vuelve delgado y frío, y a Ransom le cuesta respirar. Aquí entiende que está en Marte. Llega agotado a la cueva de Augray.',
+        facts: [['Camino', 'La línea clara que sube desde la aldea']] },
+      { from: 15, cap: 'Capítulos 14 y 15',
+        text: 'El camino sube por la pared del handramit hasta casi la tierra alta. Arriba, a Ransom ya le falta el aire. Augray, un sorn, lo recibe junto al fuego, le da oxígeno y le deja mirar el cielo con su instrumento.' }
+    ] },
+    { id: 'thulcandra', from: 11, v: [
+      { from: 11, name: 'Thulcandra', tag: 'El planeta silencioso', cap: 'Capítulo 11',
+        text: 'Los hrossa saben que existe un mundo del que nunca llega ninguna voz. Cuando Ransom les cuenta de dónde viene, concluyen que viene de allí. Es el punto azul que aparece cuando el cielo se oscurece.' },
+      { from: 15, tag: 'El planeta silencioso: la Tierra', cap: 'Capítulos 11 y 15',
+        text: 'Un mundo del que nunca llega ninguna voz. Los hrossa concluyen que Ransom viene de allí. Augray se lo muestra con su instrumento y Ransom lo reconoce: es la Tierra. Es el punto azul que aparece cuando el cielo se oscurece.' },
+      { from: 18, cap: 'Capítulos 11, 15 y 18',
+        text: 'Es la Tierra, el punto azul que aparece cuando el cielo se oscurece. Oyarsa le explica por qué calla. Su Oyarsa se torció, hubo una gran guerra y quedó confinado en su propio mundo. Desde entonces no llega ninguna voz de allí.' }
+    ] },
+    { id: 'meldilorn', from: 13, v: [
+      { from: 13, name: 'Hacia Meldilorn', tag: 'Todavía no has llegado', cap: 'Más adelante', locked: true,
+        text: 'Donde vive Oyarsa, quien gobierna Malacandra. Es el destino de Ransom, al otro lado de la tierra alta. Queda fuera del mapa hasta que avances en el libro.' },
+      { from: 16, name: 'Meldilorn', tag: 'Visto desde el borde', cap: 'Capítulo 16', locked: false,
+        text: 'Otro handramit, ancho y casi redondo. Lo llena un lago de un azul intenso. En el centro hay una isla coronada de árboles enormes con flores doradas.' },
+      { from: 17, tag: 'La isla de Oyarsa', cap: 'Capítulos 16 y 17',
+        text: 'Un hross lleva a Ransom en barca hasta la isla. No hay palacio ni ciudad: piedras erguidas, unas casas bajas para huéspedes y silencio. Ransom siente la isla llena de eldila, luces apenas visibles y pasos sin cuerpo.',
+        facts: [['Lago', 'Azul intenso, llena el fondo del valle'], ['Isla', 'Una loma coronada de árboles con flores doradas'], ['Habitantes', 'Eldila, y visitantes de las tres especies']] }
+    ] },
+    { id: 'monolitos', from: 17, v: [
+      { from: 17, name: 'Avenida de monolitos', tag: 'Historia tallada en piedra', cap: 'Capítulo 17',
+        text: 'Piedras erguidas a ambos lados del camino que sube a la cima, cubiertas de relieves. Ransom reconoce el sistema solar: cada mundo tiene junto a sí una figura como de llama, su Oyarsa. En el lugar de la Tierra, la figura fue borrada a golpes.' },
+      { from: 18, cap: 'Capítulos 17 y 18',
+        why: ['Lo que explica Oyarsa', 'El señor de Thulcandra se torció y quedó encerrado en su mundo. Por eso su figura no está en la piedra.'] }
+    ] },
+    { id: 'kanaka', from: 17, v: [
+      { from: 17, name: 'El taller de Kanakaberaka', tag: 'Un retrato en piedra', cap: 'Capítulo 17',
+        text: 'Un pfifltrigg talla en una losa la llegada de los hombres. Hace posar a Ransom. El retrato no se le parece: así ven a un humano los de aquí. Hablan de las minas, del oro y de cómo viven los pfifltriggi.' }
+    ] },
+    { id: 'oyarsa', from: 18, v: [
+      { from: 18, name: 'Ante Oyarsa', tag: 'La audiencia', cap: 'Capítulo 18',
+        text: 'Al amanecer, un eldil lo llama. Ransom sube entre dos filas silenciosas de hrossa, séroni y pfifltriggi. En la cima casi no hay nada que ver: una luz tenue y una voz. Oyarsa lo mandó llamar para hablar con un hombre de Thulcandra, nunca para un sacrificio.',
+        why: ['Lo que Ransom entiende', 'Su miedo fue un malentendido. Llevaba semanas huyendo de una invitación.'] },
+      { from: 19, name: 'El juicio y el funeral', tag: 'Los hombres ante Oyarsa', cap: 'Capítulos 18 y 19',
+        text: 'Los hrossa llegan con Weston y Devine presos y con tres hrossa muertos, Hyoi entre ellos. Weston trata a todos como salvajes: ofrece cuentas de colores y amenaza. Se ríen y, creyéndolo enfermo, lo meten en agua fría. Luego los hrossa cantan a sus muertos y Oyarsa deshace los cuerpos en un destello.' },
+      { from: 20, name: 'La sentencia', tag: 'El juicio de Oyarsa', cap: 'Capítulos 18 a 20',
+        text: 'Weston da su discurso y Ransom lo traduce a la lengua de Malacandra, donde suena hueco. Oyarsa juzga: Weston está torcido, porque tomó una sola cosa buena, la lealtad a los suyos, y la volvió su única ley. Devine está roto: solo le queda la codicia. Los manda de vuelta, y Ransom, que podría quedarse, elige volver.' }
+    ] }
   ];
 
+  var HROSS_BODY = 'Piensa en una nutria, una foca y un pingüino estirados hasta la altura de un hombre alto. Pelaje negro, espeso y lustroso. Patas muy cortas con pies palmeados, cola ancha como de castor, brazos fuertes con manos palmeadas. Cabeza redonda con bigotes largos, la frente más alta que la de una foca.';
   var FOLK = [
-    { id: 'hross', name: 'Hrossa', tag: 'Los poetas del agua', cap: 'Desde el capítulo 9',
-      text: 'Piensa en una nutria, una foca y un pingüino estirados hasta la altura de un hombre alto. Pelaje negro, espeso y lustroso. Patas muy cortas con pies palmeados, cola ancha como de castor, brazos fuertes con manos palmeadas. Cabeza redonda con bigotes largos, la frente más alta que la de una foca.',
-      facts: [['Altura', '1,8 a 2,1 m'], ['Viven', 'A la orilla del agua, en el handramit'], ['Hacen', 'Poesía, canto, barcas, pesca y la caza del hnakra'], ['Conoces a', 'Hyoi, tu amigo. Hnohra, el viejo de hocico gris que te enseña la lengua. Whin, compañero de caza. Hrikki, la cachorra.']] },
-    { id: 'sorn', name: 'Séroni', tag: 'Sorns: los pensadores de la altura', cap: 'Vistos en el 7, conocidos en el 15',
-      text: 'Dos o tres veces la altura de un hombre. Piernas larguísimas y finas, pecho abultado que parece pesar demasiado, cara larga y solemne con la nariz y la boca caídas. Un manto pálido que parece de plumas. Manos de siete dedos abiertas en abanico, pura piel sobre hueso. De lejos, Ransom ve un espectro o un ogro. De cerca, Augray resulta sereno.',
-      facts: [['Altura', '4 a 5,5 m'], ['Viven', 'En cuevas, al borde de la tierra alta'], ['Hacen', 'Ciencia, astronomía, pastoreo'], ['Voz', 'Grave, como un cuerno'], ['Conoces a', 'Augray']] },
-    { id: 'pfifl', name: 'Pfifltriggi', tag: 'Los artesanos', cap: 'Solo de oídas', locked: true,
-      text: 'La tercera especie hnau. Según los hrossa, cavan, funden lo que sacan y nadie los iguala haciendo cosas, sobre todo con la sangre del sol, que es como llaman al oro. Todavía no has visto ninguno, así que aquí solo hay una silueta.' },
-    { id: 'eldil', name: 'Eldila', tag: 'Los que casi no se ven', cap: 'Capítulos 11, 13 y 15',
-      text: 'No son hnau como los demás. Los hrossa los ven con facilidad. Ransom apenas nota un temblor de luz y oye una voz. Oyarsa, quien gobierna Malacandra, es el mayor de ellos. Aún no lo has visto.',
-      why: ['Cómo lo explica Augray', 'Lo más rápido que captan nuestros sentidos es la luz. El cuerpo de un eldil es un movimiento tan veloz como ella. Para nosotros es casi nada. Para él, una pared es como una nube.'] },
-    { id: 'hnakra', name: 'Hnakra', tag: 'El cazador del agua', cap: 'Capítulos 12 y 13',
-      text: 'Una bestia, no un hnau. Oscuro, largo y rapidísimo: llega como un torpedo dejando una estela de espuma, con mandíbulas que chasquean como las de un tiburón. Los hrossa lo cazan con lanzas desde sus barcas.',
-      why: ['Lo que dice Hyoi', 'El hnakra es su enemigo y también lo quieren. Sin peligro en los lagos, el bosque no sería tan luminoso ni el agua tan tibia.'] },
-    { id: 'ransom', name: 'Ransom', tag: 'Humano de Thulcandra', cap: 'Desde el capítulo 1',
-      text: 'Elwin Ransom, filólogo de Cambridge. Alto, de hombros algo caídos, entre treinta y cinco y cuarenta años, con la ropa gastada de quien anda de excursión a pie. Lo secuestran para entregarlo a los sorns.',
-      why: ['Por qué importa su oficio', 'Estudia lenguas. Cuando oye hablar a Hyoi, la curiosidad le gana al miedo. Aprender el idioma es lo que le abre este mundo.'] },
-    { id: 'wd', name: 'Weston y Devine', tag: 'Los secuestradores', cap: 'Desde el capítulo 1',
-      text: 'Weston, a la izquierda, es físico: corpulento, de voz fuerte, construyó la nave y cree que la humanidad debe extenderse a otros mundos cueste lo que cueste. Devine fue compañero de colegio de Ransom: delgado, burlón, y solo le interesa el oro.' }
+    { id: 'hross', from: 9, v: [
+      { from: 9, name: 'Hross', tag: 'La criatura que habla', cap: 'Capítulo 9', text: HROSS_BODY,
+        facts: [['Altura', '1,8 a 2,1 m'], ['Conoces a', 'Hyoi']] },
+      { from: 10, name: 'Hrossa', tag: 'Los que viven junto al agua', cap: 'Desde el capítulo 9',
+        facts: [['Altura', '1,8 a 2,1 m'], ['Viven', 'A la orilla del agua, en el handramit'], ['Hacen', 'Barcas, pesca y cultivos'], ['Conoces a', 'Hyoi, tu amigo. Hnohra, el viejo de hocico gris que te enseña la lengua.']] },
+      { from: 11, tag: 'Los poetas del agua',
+        facts: [['Altura', '1,8 a 2,1 m'], ['Viven', 'A la orilla del agua, en el handramit'], ['Hacen', 'Poesía, canto, barcas y pesca'], ['Conoces a', 'Hyoi, tu amigo. Hnohra, el viejo de hocico gris que te enseña la lengua.']] },
+      { from: 12,
+        facts: [['Altura', '1,8 a 2,1 m'], ['Viven', 'A la orilla del agua, en el handramit'], ['Hacen', 'Poesía, canto, barcas, pesca y la caza del hnakra'], ['Conoces a', 'Hyoi, tu amigo. Hnohra, el viejo de hocico gris que te enseña la lengua. Hrikki, la cachorra.']] },
+      { from: 13,
+        facts: [['Altura', '1,8 a 2,1 m'], ['Viven', 'A la orilla del agua, en el handramit'], ['Hacen', 'Poesía, canto, barcas, pesca y la caza del hnakra'], ['Conoces a', 'Hyoi, tu amigo. Hnohra, el viejo de hocico gris que te enseña la lengua. Whin, compañero de caza. Hrikki, la cachorra.']] },
+      { from: 19, cap: 'Capítulos 9 a 19', text: HROSS_BODY + ' En Meldilorn, los hrossa cantan a sus muertos, Hyoi entre ellos.' }
+    ] },
+    { id: 'sorn', from: 7, v: [
+      { from: 7, name: 'Sorns', tag: 'Las figuras altas', cap: 'Capítulo 7',
+        text: 'Ransom los ve de lejos: seres de dos o tres veces la altura de un hombre, con piernas delgadísimas y pecho abultado. Tienen caras largas y caídas y son pálidos, como espectros. Ransom cree que lo van a entregar a ellos y huye.' },
+      { from: 8, cap: 'Capítulos 7 y 8',
+        text: 'Seres de dos o tres veces la altura de un hombre, con piernas delgadísimas, pecho abultado y caras largas y caídas. Ransom cree que lo van a entregar a ellos y huye. Luego oye la voz de uno, grave como un cuerno, y lo ve guiando un rebaño.' },
+      { from: 11, name: 'Séroni', tag: 'Sorns: los que más saben', cap: 'Capítulos 7 a 11',
+        text: 'Los hrossa los llaman séroni: un sorn, varios séroni. Dicen que son hnau y que son los que más saben. Miden dos o tres veces la altura de un hombre. Ransom sigue temiéndolos.' },
+      { from: 15, tag: 'Sorns: los pensadores de la altura', cap: 'Vistos en el 7, conocidos en el 15',
+        text: 'Dos o tres veces la altura de un hombre. Piernas larguísimas y finas, pecho abultado que parece pesar demasiado, cara larga y solemne con la nariz y la boca caídas. Un manto pálido que parece de plumas. Manos de siete dedos abiertas en abanico, pura piel sobre hueso. De lejos, Ransom ve un espectro o un ogro. De cerca, Augray resulta sereno.',
+        facts: [['Altura', '4 a 5,5 m'], ['Viven', 'En cuevas, al borde de la tierra alta'], ['Hacen', 'Ciencia, astronomía, pastoreo'], ['Voz', 'Grave, como un cuerno'], ['Conoces a', 'Augray']] },
+      { from: 16, cap: 'Vistos en el 7, conocidos en el 15 y 16',
+        text: 'Dos o tres veces la altura de un hombre. Piernas larguísimas y finas, pecho abultado, cara larga y solemne con la nariz y la boca caídas. Un manto pálido que parece de plumas y manos de siete dedos. De lejos parecen espectros. De cerca, Augray resulta sereno. Ransom conoce también a los ancianos: viven en cuevas de la tierra alta, estudian el cielo y la historia, y crían rebaños.',
+        facts: [['Altura', '4 a 5,5 m'], ['Viven', 'En cuevas, al borde de la tierra alta'], ['Hacen', 'Ciencia, astronomía, historia, pastoreo'], ['Voz', 'Grave, como un cuerno'], ['Conoces a', 'Augray y el sorn anciano']] }
+    ] },
+    { id: 'pfifl', from: 11, v: [
+      { from: 11, name: 'Pfifltriggi', tag: 'Los artesanos', cap: 'Solo de oídas', locked: true,
+        text: 'La tercera especie hnau. Según los hrossa, cavan, funden lo que sacan y nadie los iguala haciendo cosas, sobre todo con la sangre del sol, que es como llaman al oro. Todavía no has visto ninguno, así que aquí solo hay una silueta.' },
+      { from: 17, name: 'Pfifltriggi', tag: 'Los que hacen', cap: 'Capítulo 17', locked: false,
+        text: 'Bajos, anchos y agachados, con algo de rana. No tienen pelo y su piel es pálida y amarillenta. La cabeza termina en un hocico largo, como de tapir, y la nuca es abultada. Sus brazos son largos y fuertes, con manos de muchos dedos finos, y trabajan con los codos en el suelo. Visten colores vivos y adornos de oro. Son rápidos, habladores e irónicos.',
+        facts: [['Altura', 'Aprox. 1 m'], ['Viven', 'En las tierras bajas más hondas, cerca de las minas'], ['Hacen', 'Minería, metal, talla. Fabrican lo que los otros imaginan'], ['Conoces a', 'Kanakaberaka']] }
+    ] },
+    { id: 'eldil', from: 11, v: [
+      { from: 11, name: 'Eldila', tag: 'Los que casi no se ven', cap: 'Solo de oídas', locked: true,
+        text: 'Los hrossa hablan de seres que van y vienen y que casi no se ven. Ransom piensa que es una creencia suya.' },
+      { from: 12, cap: 'Capítulos 11 y 12',
+        text: 'Una cachorra habla con alguien que Ransom no logra ver. Hyoi le dice que hay que mirar bien. Los eldila son difíciles de ver, como la luz.' },
+      { from: 13, cap: 'Capítulos 11 a 13', locked: false,
+        text: 'Durante la caza, Ransom oye la voz de un eldil. Ya no puede dudar de que existen. La voz le dice que debe ir a ver a Oyarsa.' },
+      { from: 15, cap: 'Capítulos 11, 13 y 15',
+        text: 'No son hnau como los demás. Los hrossa los ven con facilidad. Ransom apenas nota un temblor de luz y oye una voz. Oyarsa, quien gobierna Malacandra, es el mayor de ellos. Aún no lo has visto.',
+        why: ['Cómo lo explica Augray', 'Lo más rápido que captan nuestros sentidos es la luz. El cuerpo de un eldil es un movimiento tan veloz como ella. Para nosotros es casi nada. Para él, una pared es como una nube.'] },
+      { from: 17, cap: 'Capítulos 11 a 17',
+        text: 'No son hnau como los demás. Los hrossa los ven con facilidad. Ransom apenas nota un temblor de luz y oye una voz. Meldilorn está lleno de ellos.' },
+      { from: 18, cap: 'Capítulos 11 a 18',
+        text: 'No son hnau como los demás. Los hrossa los ven con facilidad, y Ransom apenas nota un temblor de luz y una voz. Meldilorn está lleno de ellos. Oyarsa es uno de ellos, el mayor de este mundo.' }
+    ] },
+    { id: 'oyarsa', from: 11, v: [
+      { from: 11, name: 'Oyarsa', tag: 'Quien gobierna Malacandra', cap: 'Solo de oídas', locked: true,
+        text: 'Los hrossa dicen que vive en Meldilorn. No es hross, ni sorn, ni pfifltrigg.' },
+      { from: 13, cap: 'Capítulos 11 y 13',
+        text: 'Los hrossa dicen que vive en Meldilorn. No es hross, ni sorn, ni pfifltrigg. Durante la caza, un eldil ordena a Ransom ir a verlo.' },
+      { from: 15, cap: 'Capítulos 11, 13 y 15',
+        text: 'Vive en Meldilorn y no es hross, ni sorn, ni pfifltrigg. Un eldil ordena a Ransom ir a verlo. Augray dice que es el mayor de los eldila, que no muere y que gobierna desde el principio.' },
+      { from: 18, tag: 'Una luz y una voz', cap: 'Capítulo 18', locked: false,
+        text: 'Ransom casi no ve nada: apenas un cambio en la luz. La voz no tiembla ni respira. Gobierna Malacandra desde su origen, y cada mundo tiene el suyo.',
+        why: ['Por qué Thulcandra calla', 'Su Oyarsa se torció y quedó encerrado en su propio mundo.'] },
+      { from: 20, cap: 'Capítulos 18 a 20',
+        text: 'Ransom casi no ve nada: apenas un cambio en la luz. La voz no tiembla ni respira. Gobierna Malacandra desde su origen, y cada mundo tiene el suyo. Juzga a Weston y a Devine y los manda de vuelta. A Ransom le dice que volverán a encontrarse.' },
+      { from: 22, cap: 'Capítulos 18 a 22',
+        facts: [['El nombre', 'La palabra Oyarses aparece en un texto medieval. Por ella el narrador dio con Ransom.']] }
+    ] },
+    { id: 'hnakra', from: 7, v: [
+      { from: 7, name: 'La bestia del agua', tag: 'Un hocico que chasquea', cap: 'Capítulo 7',
+        text: 'Cuando los sorns se acercan, algo oscuro y veloz llega por el agua dejando una estela de espuma. Lanza un mordisco. En la confusión, Ransom escapa.' },
+      { from: 12, name: 'Hnakra', tag: 'El cazador del agua', cap: 'Capítulos 7 y 12',
+        text: 'Una bestia, no un hnau. Oscuro, largo y rapidísimo: llega como un torpedo dejando una estela de espuma, con mandíbulas que chasquean como las de un tiburón. Los hrossa lo cazan con lanzas desde sus barcas.',
+        why: ['Lo que dice Hyoi', 'El hnakra es su enemigo y también lo quieren. Sin peligro en los lagos, el bosque no sería tan luminoso ni el agua tan tibia.'] },
+      { from: 13, cap: 'Capítulos 7, 12 y 13' }
+    ] },
+    { id: 'ransom', from: 1, v: [
+      { from: 1, name: 'Ransom', tag: 'Un caminante', cap: 'Desde el capítulo 1',
+        text: 'Elwin Ransom, filólogo de Cambridge. Alto, de hombros algo caídos, entre treinta y cinco y cuarenta años. Está de vacaciones y recorre Inglaterra a pie.' },
+      { from: 2,
+        text: 'Elwin Ransom, filólogo de Cambridge. Alto, de hombros algo caídos, entre treinta y cinco y cuarenta años, con la ropa gastada de quien anda de excursión a pie. Lo drogan y lo secuestran.' },
+      { from: 5,
+        text: 'Elwin Ransom, filólogo de Cambridge. Alto, de hombros algo caídos, entre treinta y cinco y cuarenta años. Lo drogan y lo secuestran. En el viaje se siente más sano y despierto que nunca, aunque teme lo que le espera.' },
+      { from: 7, tag: 'Humano en un mundo ajeno' },
+      { from: 9,
+        why: ['Por qué importa su oficio', 'Estudia lenguas. Cuando oye hablar a Hyoi, la curiosidad le gana al miedo. Aprender el idioma es lo que le abre este mundo.'] },
+      { from: 11, tag: 'Humano de Thulcandra',
+        text: 'Elwin Ransom, filólogo de Cambridge. Alto, de hombros algo caídos, entre treinta y cinco y cuarenta años, con la ropa gastada de quien anda de excursión a pie. Lo secuestran para entregarlo a los sorns.' },
+      { from: 18,
+        text: 'Elwin Ransom, filólogo de Cambridge. Alto, de hombros algo caídos, entre treinta y cinco y cuarenta años. Lo secuestran para entregarlo a los sorns. En Meldilorn descubre que nadie quiso sacrificarlo.' },
+      { from: 20,
+        text: 'Elwin Ransom, filólogo de Cambridge. Alto, de hombros algo caídos, entre treinta y cinco y cuarenta años. En Meldilorn descubre que nadie quiso sacrificarlo. Traduce el discurso de Weston ante Oyarsa y decide volver a la Tierra.' },
+      { from: 21, tag: 'De vuelta en Thulcandra',
+        text: 'Elwin Ransom, filólogo de Cambridge. Alto, de hombros algo caídos, entre treinta y cinco y cuarenta años. Elige volver a la Tierra con Weston y Devine. Llega agotado y enfermo tras el viaje.' },
+      { from: 22, tag: 'Un nombre prestado',
+        text: 'Filólogo de Cambridge, alto y de hombros algo caídos. Viajó a Malacandra y volvió agotado y enfermo. Ransom no es su verdadero nombre: el narrador se lo cambia para protegerlo.' }
+    ] },
+    { id: 'wd', from: 1, v: [
+      { from: 1, name: 'Weston y Devine', tag: 'Un viejo compañero y un físico', cap: 'Desde el capítulo 1',
+        text: 'Devine fue compañero de colegio de Ransom: delgado y burlón. Weston, a la izquierda, es físico: corpulento y de voz fuerte. Ransom los sorprende forcejeando con un muchacho.' },
+      { from: 2, tag: 'Los secuestradores',
+        text: 'Devine fue compañero de colegio de Ransom: delgado y burlón. Weston, a la izquierda, es físico: corpulento y de voz fuerte. Drogan a Ransom y se lo llevan en lugar del muchacho.' },
+      { from: 4,
+        text: 'Weston, a la izquierda, es físico: corpulento, de voz fuerte. Construyó la nave y cree que la humanidad debe extenderse a otros mundos cueste lo que cueste. Devine fue compañero de colegio de Ransom, delgado y burlón. Solo le interesa lo que pueda ganar.' },
+      { from: 11,
+        text: 'Weston, a la izquierda, es físico: corpulento, de voz fuerte, construyó la nave y cree que la humanidad debe extenderse a otros mundos cueste lo que cueste. Devine fue compañero de colegio de Ransom: delgado, burlón, y solo le interesa el oro.' },
+      { from: 18, tag: 'Presos en Meldilorn',
+        text: 'Weston, a la izquierda, es físico y cree que la humanidad debe extenderse a otros mundos cueste lo que cueste. Devine, delgado y burlón, solo quiere oro. Matan a otros dos hrossa y llegan presos a Meldilorn.' },
+      { from: 19,
+        text: 'Weston, a la izquierda, es físico y cree que la humanidad debe extenderse a otros mundos cueste lo que cueste. Devine, delgado y burlón, solo quiere oro. Llegan presos a Meldilorn. Weston trata a todos como salvajes y ofrece cuentas de colores. Lo toman por enfermo y lo meten en agua fría.' },
+      { from: 20, tag: 'Juzgados por Oyarsa',
+        text: 'Weston, a la izquierda, es físico y cree que la humanidad debe extenderse a otros mundos cueste lo que cueste. Devine, delgado y burlón, solo quiere oro. Oyarsa los juzga: Weston está torcido y Devine, roto. Los manda de vuelta a su mundo.' },
+      { from: 21, tag: 'Vuelven vencidos',
+        text: 'Weston, a la izquierda, es físico y cree que la humanidad debe extenderse a otros mundos cueste lo que cueste. Devine, delgado y burlón, solo quiere oro. Oyarsa los juzga y los manda de vuelta. Regresan a la Tierra con Ransom, vencidos.' },
+      { from: 22, tag: 'Todavía sueltos',
+        text: 'Weston, a la izquierda, es físico y cree que la humanidad debe extenderse a otros mundos cueste lo que cueste. Devine, delgado y burlón, solo quiere oro. Regresan a la Tierra con Ransom, vencidos. El narrador advierte que Weston sigue libre.' }
+    ] }
   ];
+
+  /* ---------- Capítulo actual ---------- */
+  function load(k) { try { var n = parseInt(window.localStorage.getItem(k), 10); return n >= 1 && n <= TOTAL ? n : 0; } catch (e) { return 0; } }
+  function store(k, n) { try { window.localStorage.setItem(k, String(n)); } catch (e) {} }
+  var CH = load('atlas.ch'), LEIDO = Math.max(load('atlas.leido'), CH);
+
+  // Versión vigente de un ítem en CH, o null si el lector aún no lo conoce
+  function ver(it) {
+    if (!it || CH < (it.from || 0)) return null;
+    var out = null, i, k, o;
+    for (i = 0; i < it.v.length && it.v[i].from <= CH; i++) {
+      o = {};
+      if (out) for (k in out) o[k] = out[k];
+      for (k in it.v[i]) o[k] = it.v[i][k];
+      out = o;
+    }
+    if (out && it.id) out.id = it.id;
+    return out;
+  }
+  function findIn(arr, id) { for (var i = 0; i < arr.length; i++) if (arr[i].id === id) return arr[i]; return null; }
 
   var card = $('#card'), list = $('#list');
   var mode = 'world';
   var sel = { world: null, gal: null };
-  function items() { return mode === 'world' ? PLACES : FOLK; }
+  var scn = sceneFor(CH);   // escena activa de "El mundo"
+  function inScene(it) { return (it.scene || 'mal') === scn; }
+  function items() { return mode === 'world' ? PLACES.filter(inScene) : FOLK; }
+  function scenesOpen() { return SCENES.filter(function (s) { return CH && s.from <= CH; }); }
+  function shown() { var r = []; items().forEach(function (it) { var v = ver(it); if (v) r.push(v); }); return r; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function renderCard() {
-    var it = null, id = sel[mode];
-    items().forEach(function (x) { if (x.id === id) it = x; });
-    if (!it) it = INTRO[mode];
-    var h = '<div class="eyebrow">' + esc(it.cap) + '</div><h2>' + esc(it.name) + '</h2><div class="tag">' + esc(it.tag) + '</div><p>' + esc(it.text) + '</p>';
+    var it = CH ? ver(findIn(items(), sel[mode])) || ver(INTRO[mode === 'world' ? scn : 'gal']) : null;
+    if (!it) it = NEUTRAL;
+    var h = '<div class="eyebrow">' + esc(it.cap) + '</div><h2>' + esc(it.name) + '</h2>' + (it.tag ? '<div class="tag">' + esc(it.tag) + '</div>' : '') + '<p>' + esc(it.text) + '</p>';
     if (it.why) h += '<p class="why"><b>' + esc(it.why[0]) + '.</b> ' + esc(it.why[1]) + '</p>';
     if (it.facts) { h += '<dl>'; it.facts.forEach(function (f) { h += '<dt>' + esc(f[0]) + '</dt><dd>' + esc(f[1]) + '</dd>'; }); h += '</dl>'; }
     card.innerHTML = h;
   }
   function renderList() {
+    var vs = shown();
     $('#list-title').textContent = mode === 'world' ? 'Lugares' : 'Habitantes';
+    $('.listwrap').hidden = !vs.length;
     var h = '<button data-id="" aria-pressed="' + (sel[mode] ? 'false' : 'true') + '">Vista general</button>';
-    items().forEach(function (it) {
-      h += '<button data-id="' + it.id + '" class="' + (it.locked ? 'locked' : '') + '" aria-pressed="' + (sel[mode] === it.id ? 'true' : 'false') + '">' + esc(it.name) + '</button>';
+    vs.forEach(function (v) {
+      h += '<button data-id="' + v.id + '" class="' + (v.locked ? 'locked' : '') + '" aria-pressed="' + (sel[mode] === v.id ? 'true' : 'false') + '">' + esc(v.name) +
+        (v.from === CH ? '<span class="dot" aria-hidden="true"></span><span class="sr"> (nuevo)</span>' : '') + '</button>';
     });
     list.innerHTML = h;
+    $('#hint').hidden = !CH;
     $('#hint').textContent = mode === 'world'
-      ? 'Arrastra para girar, rueda o pellizca para acercarte. Si subes la cámara, el cielo se oscurece.'
+      ? (scn === 'cielo' ? 'Arrastra para girar alrededor de la nave. Aquí no hay arriba ni abajo.'
+        : scn === 'tierra' ? 'Arrastra para girar, rueda o pellizca para acercarte.'
+        : 'Arrastra para girar, rueda o pellizca para acercarte. Si subes la cámara, el cielo se oscurece.')
       : 'Arrastra para girar alrededor de las figuras. Elige una para verla de cerca.';
+    renderScenes();
+  }
+  // Conmutador de escena: solo en "El mundo" y si hay más de una escena abierta
+  var scenesEl = $('#scenes');
+  function renderScenes() {
+    var open = scenesOpen();
+    scenesEl.hidden = mode !== 'world' || open.length < 2;
+    scenesEl.innerHTML = open.map(function (s) {
+      return '<button data-scene="' + s.id + '" aria-pressed="' + (s.id === scn ? 'true' : 'false') + '">' + esc(s.name) +
+        (s.id === sceneFor(CH) ? '<span class="dot" aria-hidden="true"></span><span class="sr"> (Ransom está aquí)</span>' : '') + '</button>';
+    }).join('');
+    var nm = findIn(SCENES, scn);
+    canvas.setAttribute('aria-label', mode === 'world' ? 'Escena 3D: ' + (CH && nm ? nm.name : 'Malacandra') : 'Escena 3D: habitantes a escala');
+  }
+  scenesEl.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (b) setScene(b.getAttribute('data-scene'));
+  });
+  var sceneHook = function () {};
+  // Cambia la escena activa. Devuelve true si cambió.
+  function switchScene(id) {
+    if (id === scn) return false;
+    var prev = scn; scn = id; sel.world = null;
+    sceneHook(prev);
+    return true;
+  }
+  function setScene(id) {
+    var s = findIn(SCENES, id);
+    if (!s || !CH || s.from > CH) return;
+    if (switchScene(id)) { renderCard(); renderList(); chapterHook(false); }
   }
   var onSelect = function () {};
   list.addEventListener('click', function (e) {
@@ -207,6 +607,7 @@
     select(b.getAttribute('data-id') || null);
   });
   function select(id) {
+    if (id && !ver(findIn(items(), id))) return;
     sel[mode] = id;
     renderCard(); renderList();
     onSelect(id);
@@ -222,7 +623,57 @@
   }
   $('#tab-world').addEventListener('click', function () { setMode('world'); });
   $('#tab-gal').addEventListener('click', function () { setMode('gal'); });
-  renderCard(); renderList();
+
+  /* ---------- Selector de capítulo ---------- */
+  var chSel = $('#chsel'), chAsk = $('#chask'), pending = 0;
+  (function () {
+    var a = '', b = '';
+    for (var n = 1; n <= TOTAL; n++) { a += '<option value="' + n + '">' + n + '</option>'; b += '<option value="' + n + '">Capítulo ' + n + '</option>'; }
+    chSel.innerHTML = a; $('#firstsel').innerHTML = b;
+  })();
+  var chapterHook = function () {};
+  function syncChapterUI() {
+    $('#chap').hidden = !CH;
+    $('#first').hidden = !!CH;
+    chSel.value = String(CH || 1);
+    $('#chprev').disabled = CH <= 1;
+    $('#chnext').disabled = CH >= TOTAL;
+    $('#brand p').textContent = CH ? 'Capítulo ' + CH + ' de ' + TOTAL : 'Elige tu capítulo';
+  }
+  function hideAsk() { pending = 0; chAsk.hidden = true; }
+  function goChapter(n, leido) {
+    CH = n; LEIDO = leido;
+    store('atlas.ch', CH); store('atlas.leido', LEIDO);
+    hideAsk();
+    switchScene(sceneFor(CH));   // la escena activa es la de Ransom en ese capítulo
+    var lost = false;
+    ['world', 'gal'].forEach(function (m) {
+      if (sel[m] && !ver(findIn(m === 'world' ? PLACES : FOLK, sel[m]))) { sel[m] = null; if (m === mode) lost = true; }
+    });
+    syncChapterUI(); renderCard(); renderList();
+    chapterHook(lost);
+  }
+  function requestChapter(n) {
+    n = Math.max(1, Math.min(TOTAL, n));
+    if (n === CH) { hideAsk(); chSel.value = String(CH); return; }
+    if (n <= LEIDO) { goChapter(n, LEIDO); return; }
+    pending = n;
+    chSel.value = String(n);
+    $('#chmsg').textContent = 'Vas a revelar hasta el capítulo ' + n + '. ¿Ya lo leíste?';
+    chAsk.hidden = false;
+  }
+  chSel.addEventListener('change', function () { requestChapter(parseInt(chSel.value, 10)); });
+  $('#chprev').addEventListener('click', function () { requestChapter((pending || CH) - 1); });
+  $('#chnext').addEventListener('click', function () { requestChapter((pending || CH) + 1); });
+  $('#chyes').addEventListener('click', function () { if (pending) goChapter(pending, Math.max(LEIDO, pending)); });
+  $('#chno').addEventListener('click', function () { hideAsk(); chSel.value = String(CH); });
+  $('#firstgo').addEventListener('click', function () { var n = parseInt($('#firstsel').value, 10) || 1; goChapter(n, Math.max(LEIDO, n)); });
+
+  syncChapterUI(); renderCard(); renderList();
+  window.__atlas = {
+    select: function (id) { select(id); }, setMode: function (m) { setMode(m); }, setScene: function (id) { setScene(id); },
+    setChapter: function (n) { n = Math.max(1, Math.min(TOTAL, n | 0)); goChapter(n, n); }
+  };
 
   /* ---------- 3D ---------- */
   var renderer;
@@ -231,6 +682,9 @@
     renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
   } catch (err) { $('#nogl').hidden = false; return; }
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  window.__atlas.stats = function () { var r = renderer.info.render; return { calls: r.calls, tris: r.triangles }; };
+  window.__atlas.look = function (p, t) { fly = null; camera.position.set(p[0], p[1], p[2]); controls.target.set(t[0], t[1], t[2]); controls.update(); };
+  window.__atlas.cam = function () { return [camera.position.x, camera.position.y, camera.position.z, controls.target.x, controls.target.z, camera.aspect].map(function (v) { return Math.round(v * 100) / 100; }); };
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -249,6 +703,7 @@
 
   /* --- Relieve: meseta (harandra) cortada por un cañón (handramit) con río --- */
   var SIZE = 220, HALF = 110, LAKE_Z = -45;
+  var EAST = 220, MX = 232, MZ = 0;   // centro del bloque este y de la cuenca de Meldilorn
   function lake(z) { return Math.exp(-Math.pow((z - LAKE_Z) / 16, 2)); }
   function canyonX(z) { return 14 * Math.sin(z * 0.026) + 6 * Math.sin(z * 0.067 + 1.3); }
   function canyonW(z) { return 30 + 4 * Math.sin(z * 0.045 + 0.6) + 8 * lake(z); }
@@ -266,6 +721,14 @@
     var floor = -1.7 + 3.0 * sstep(rw * 0.55, rw * 1.5, rd) + 0.5 * fbm(x * 0.15, z * 0.15);
     var t = sstep(w * 0.62, w, d + 4 * (fbm(x * 0.07 + 5, z * 0.07 + 3) - 0.47));
     t = t * t * (3 - 2 * t);
+    // Bloque este (desde el capítulo 16): cuenca casi redonda de Meldilorn, con orilla, lago e isla
+    var bx = x - MX, bz = z - MZ, r = Math.sqrt(bx * bx + bz * bz);
+    if (r < 72) {
+      var bf = 0.6 + 0.35 * fbm(x * 0.15, z * 0.15) + 3.7 * (1 - sstep(0, 15, r)) - 3.4 * sstep(14.5, 18, r) * (1 - sstep(37.5, 40.5, r));
+      var tb = sstep(46, 62, r + 6 * (fbm(x * 0.07 + 5, z * 0.07 + 3) - 0.47));
+      tb = tb * tb * (3 - 2 * tb);
+      return { y: bf + (top - bf) * tb, t: tb, ma: ma, isl: 1 - sstep(13, 16, r) };
+    }
     return { y: floor + (top - floor) * t, t: t, ma: ma };
   }
   function gy(x, z) { return Math.max(terr(x, z).y, 0); }
@@ -280,36 +743,69 @@
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.camera.left = -165; sun.shadow.camera.right = 165; sun.shadow.camera.top = 165; sun.shadow.camera.bottom = -165;
   sun.shadow.camera.near = 20; sun.shadow.camera.far = 420; sun.shadow.bias = -0.0006;
-  world.add(sun);
+  world.add(sun); world.add(sun.target);
+  // Desde el capítulo 16 la sombra debe cubrir los dos bloques
+  function sunFor(both) {
+    var e = both ? 255 : 165, cx = both ? EAST / 2 : 0, c = sun.shadow.camera;
+    sun.position.set(90 + cx, 140, 60); sun.target.position.set(cx, 0, 0);
+    c.left = -e; c.right = e; c.top = e; c.bottom = -e; c.far = both ? 520 : 420; c.updateProjectionMatrix();
+  }
 
-  (function buildTerrain() {
+  /* --- Registro de visibilidad por capítulo: gate(obj, desde, hasta) --- */
+  var GATES = [];
+  function gate(obj, from, to) { GATES.push({ o: obj, from: from, to: to }); return obj; }
+  function layerAt(from, to) { var g = new THREE.Group(); world.add(g); return gate(g, from, to); }
+  var land = layerAt(7), layer = land;   // onGround e instanced agregan a "layer"
+
+  /* Cada bloque es un relieve de 220 x 220 con su agua y cuatro faldas verticales hasta y = -6.
+     Las faldas no bajan vértices del relieve, así los dos bloques encajan sin zanja en x = 110. */
+  var terrMat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 });
+  var waterMat = new THREE.MeshStandardMaterial({ color: 0x2f76d8, roughness: 0.12, metalness: 0.25, transparent: true, opacity: 0.86 });
+  var skirtMat = new THREE.MeshStandardMaterial({ color: 0x4a3040, roughness: 1, metalness: 0, side: THREE.DoubleSide });
+  function skirt(grp, x0, z0, x1, z1) {
+    var N = 220, p = new Float32Array((N + 1) * 6), idx = [];
+    for (var i = 0; i <= N; i++) {
+      var x = lerp(x0, x1, i / N), z = lerp(z0, z1, i / N), y = Math.max(terr(x, z).y, 0);
+      p.set([x, y, z, x, -6, z], i * 6);
+      if (i < N) idx.push(2 * i, 2 * i + 1, 2 * i + 2, 2 * i + 2, 2 * i + 1, 2 * i + 3);
+    }
+    var g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3)); g.setIndex(idx); g.computeVertexNormals();
+    var m = new THREE.Mesh(g, skirtMat); grp.add(m); return m;
+  }
+  function buildBlock(cx, grp) {
     var SEG = 220;
-    var g = new THREE.PlaneGeometry(SIZE, SIZE, SEG, SEG); g.rotateX(-Math.PI / 2);
+    var g = new THREE.PlaneGeometry(SIZE, SIZE, SEG, SEG); g.rotateX(-Math.PI / 2); g.translate(cx, 0, 0);
     var pos = g.attributes.position, col = new Float32Array(pos.count * 3);
-    var pinkA = new THREE.Color(0xe392aa), pinkB = new THREE.Color(0xf0bcc8), wet = new THREE.Color(0xa890ad),
+    var pinkA = new THREE.Color(0xe392aa), pinkB = new THREE.Color(0xf0bcc8), wet = new THREE.Color(0xa890ad), pale = new THREE.Color(0xf6d2d8),
       wallA = new THREE.Color(0x84a690), wallB = new THREE.Color(0xb9d1b7), topA = new THREE.Color(0xb1644a), topB = new THREE.Color(0xdba473),
       peak = new THREE.Color(0xbcd2ba), a = new THREE.Color(), b = new THREE.Color(), c = new THREE.Color(), out = new THREE.Color();
     for (var i = 0; i < pos.count; i++) {
       var x = pos.getX(i), z = pos.getZ(i);
-      if (Math.abs(x) > HALF - 0.01 || Math.abs(z) > HALF - 0.01) { pos.setY(i, -6); out.set(0x4a3040); }
-      else {
-        var info = terr(x, z); pos.setY(i, info.y);
-        var n = Math.min(1, fbm(x * 0.25 + 3, z * 0.25 + 7) / 0.9);
-        a.copy(pinkA).lerp(pinkB, n).lerp(wet, 1 - sstep(-0.7, 0.3, info.y));
-        b.copy(wallA).lerp(wallB, n);
-        c.copy(topA).lerp(topB, n).lerp(peak, sstep(0.2, 0.6, info.ma));
-        out.copy(a).lerp(b, sstep(0.03, 0.14, info.t)).lerp(c, sstep(0.86, 0.98, info.t));
-      }
+      var info = terr(x, z); pos.setY(i, info.y);
+      var n = Math.min(1, fbm(x * 0.25 + 3, z * 0.25 + 7) / 0.9);
+      a.copy(pinkA).lerp(pinkB, n).lerp(wet, 1 - sstep(-0.7, 0.3, info.y));
+      if (info.isl) a.lerp(pale, info.isl * 0.7);
+      b.copy(wallA).lerp(wallB, n);
+      c.copy(topA).lerp(topB, n).lerp(peak, sstep(0.2, 0.6, info.ma));
+      out.copy(a).lerp(b, sstep(0.03, 0.14, info.t)).lerp(c, sstep(0.86, 0.98, info.t));
       col[i * 3] = out.r; col[i * 3 + 1] = out.g; col[i * 3 + 2] = out.b;
     }
     g.setAttribute('color', new THREE.BufferAttribute(col, 3));
     g.computeVertexNormals();
-    var m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 }));
-    m.receiveShadow = true; m.castShadow = true; world.add(m);
-    var wg = new THREE.PlaneGeometry(SIZE - 1.2, SIZE - 1.2); wg.rotateX(-Math.PI / 2);
-    var water = new THREE.Mesh(wg, new THREE.MeshStandardMaterial({ color: 0x2f76d8, roughness: 0.12, metalness: 0.25, transparent: true, opacity: 0.86 }));
-    water.receiveShadow = true; world.add(water);
-  })();
+    var m = new THREE.Mesh(g, terrMat);
+    m.receiveShadow = true; m.castShadow = true; grp.add(m);
+    var wg = new THREE.PlaneGeometry(SIZE, SIZE); wg.rotateX(-Math.PI / 2); wg.translate(cx, 0, 0);
+    var water = new THREE.Mesh(wg, waterMat);
+    water.receiveShadow = true; grp.add(water);
+    var x0 = cx - HALF, x1 = cx + HALF;
+    skirt(grp, x0, -HALF, x1, -HALF); skirt(grp, x0, HALF, x1, HALF);
+    return { w: function (gg) { return skirt(gg, x0, -HALF, x0, HALF); }, e: function (gg) { return skirt(gg, x1, -HALF, x1, HALF); } };
+  }
+  var westBlock = buildBlock(0, land);
+  westBlock.w(land);
+  westBlock.e(layerAt(7, 15));            // la falda este del bloque oeste desaparece cuando llega el bloque este
+  var landE = layerAt(16), eastBlock = buildBlock(EAST, landE);
+  eastBlock.e(landE);                      // la falda oeste del bloque este nunca se construye
 
   /* --- Piezas reutilizables --- */
   var SPH = new THREE.SphereGeometry(1, 20, 14), CONE = new THREE.ConeGeometry(1, 1, 12);
@@ -326,6 +822,7 @@
     o.castShadow = true; g.add(o); return o;
   }
   var UP = new THREE.Vector3(0, 1, 0);
+  var V3 = function (x, y, z) { return new THREE.Vector3(x, y, z); };
   function limb(g, m, a, b, ra, rb) {
     var A = new THREE.Vector3(a[0], a[1], a[2]), B = new THREE.Vector3(b[0], b[1], b[2]);
     var o = new THREE.Mesh(new THREE.CylinderGeometry(rb, ra, A.distanceTo(B), 10), m);
@@ -367,14 +864,28 @@
   }
 
   /* Sorn: 5 m, piernas de zancudo, pecho abultado, manto plumoso palido, cara larga */
-  function makeSorn() {
-    var g = new THREE.Group();
-    var coat = mat(0xf0e8d7, 1), skin = mat(0xe6d7bf, 0.75), hand = mat(0xead2c0, 0.6, 0, { transparent: true, opacity: 0.88 });
+  // opt.seated: sentado sobre una piedra. opt.stride: piernas en zancada. opt.coat: color del manto.
+  function makeSorn(opt) {
+    opt = opt || {};
+    var root = new THREE.Group(), g = root;
+    var coat = mat(opt.coat || 0xf0e8d7, 1), skin = mat(0xe6d7bf, 0.75), hand = mat(0xead2c0, 0.6, 0, { transparent: true, opacity: 0.88 });
+    if (opt.seated) {
+      g = new THREE.Group(); g.position.y = -1.45; root.add(g);
+      part(root, new THREE.BoxGeometry(1.1, 1.45, 1.0), mat(0xa9c4ac, 1, 0, { flatShading: true }), [0, 0.72, -0.1]);
+    }
     [-1, 1].forEach(function (s) {
-      limb(g, coat, [s * 0.2, 2.95, 0], [s * 0.24, 1.5, 0.06], 0.085, 0.06);
-      limb(g, skin, [s * 0.24, 1.5, 0.06], [s * 0.22, 0.06, 0], 0.055, 0.045);
-      part(g, SPH, skin, [s * 0.24, 1.5, 0.06], [0.075, 0.075, 0.075]);
-      part(g, SPH, skin, [s * 0.22, 0.04, 0.14], [0.09, 0.04, 0.25]);
+      if (opt.seated) {
+        limb(root, coat, [s * 0.2, 1.52, 0], [s * 0.3, 1.6, 1.3], 0.085, 0.06);
+        limb(root, skin, [s * 0.3, 1.6, 1.3], [s * 0.27, 0.06, 1.42], 0.055, 0.045);
+        part(root, SPH, skin, [s * 0.3, 1.6, 1.3], [0.075, 0.075, 0.075]);
+        part(root, SPH, skin, [s * 0.27, 0.04, 1.56], [0.09, 0.04, 0.25]);
+      } else {
+        var st = (opt.stride || 0) * s;
+        limb(g, coat, [s * 0.2, 2.95, 0], [s * 0.24, 1.5, 0.06 + st * 0.5], 0.085, 0.06);
+        limb(g, skin, [s * 0.24, 1.5, 0.06 + st * 0.5], [s * 0.22, 0.06, st], 0.055, 0.045);
+        part(g, SPH, skin, [s * 0.24, 1.5, 0.06 + st * 0.5], [0.075, 0.075, 0.075]);
+        part(g, SPH, skin, [s * 0.22, 0.04, 0.14 + st], [0.09, 0.04, 0.25]);
+      }
       var sh = [s * 0.5, 4.12, 0], el = [s * 0.64, 3.2, 0.05], wr = [s * 0.52, 2.45, 0.3];
       limb(g, coat, sh, el, 0.075, 0.05); limb(g, skin, el, wr, 0.045, 0.035);
       for (var k = 0; k < 7; k++) { var a = (k - 3) * 0.21; limb(g, hand, wr, [wr[0] + Math.sin(a) * 0.3, wr[1] - Math.cos(a) * 0.32, wr[2] + 0.04], 0.014, 0.006); }
@@ -392,7 +903,7 @@
     limb(g, skin, [0, 5.03, 0.26], [0, 4.74, 0.34], 0.045, 0.028);
     part(g, SPH, DARK, [0, 4.69, 0.215], [0.06, 0.011, 0.02]);
     part(g, CONE, coat, [0, 4.5, 0.15], [0.085, 0.3, 0.075], [Math.PI, 0, 0]);
-    return g;
+    return root;
   }
 
   function makeHuman(o) {
@@ -400,8 +911,14 @@
     var coat = mat(o.coat), trou = mat(o.trou), skin = mat(0xe2b08c, 0.7), hair = mat(o.hair, 0.9);
     var w = o.build || 1;
     [-1, 1].forEach(function (s) {
-      limb(g, trou, [s * 0.1 * w, 0.92, 0], [s * 0.11 * w, 0.06, 0], 0.085 * w, 0.065);
-      part(g, SPH, DARK, [s * 0.11 * w, 0.04, 0.06], [0.07, 0.045, 0.14]);
+      if (o.sit) {   // sentado: muslos hacia delante y piernas colgando
+        limb(g, trou, [s * 0.1 * w, 0.92, 0], [s * 0.11 * w, 0.92, 0.42], 0.085 * w, 0.075);
+        limb(g, trou, [s * 0.11 * w, 0.92, 0.42], [s * 0.11 * w, 0.5, 0.48], 0.075, 0.065);
+        part(g, SPH, DARK, [s * 0.11 * w, 0.48, 0.54], [0.07, 0.045, 0.14]);
+      } else {
+        limb(g, trou, [s * 0.1 * w, 0.92, 0], [s * 0.11 * w, 0.06, 0], 0.085 * w, 0.065);
+        part(g, SPH, DARK, [s * 0.11 * w, 0.04, 0.06], [0.07, 0.045, 0.14]);
+      }
       limb(g, coat, [s * 0.23 * w, 1.45, 0], [s * 0.28 * w, 0.95, 0.05], 0.062 * w, 0.05);
       part(g, SPH, skin, [s * 0.28 * w, 0.9, 0.06], [0.05, 0.06, 0.05]);
     });
@@ -440,9 +957,11 @@
   }
 
   var eldilMats = [];
-  function makeEldil() {
+  function makeEldil(k) {   // k: intensidad (1 por defecto)
     var g = new THREE.Group();
+    k = k || 1;
     function col(r, h, op) {
+      op = Math.min(0.9, op * k);
       var m = new THREE.MeshBasicMaterial({ color: 0xfff3cf, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
       m.userData.base = op; eldilMats.push(m);
       var o = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 0.7, h, 20, 1, true), m); o.position.y = h / 2 + 0.2; g.add(o);
@@ -461,6 +980,112 @@
     var g = new THREE.Group(), m = new THREE.MeshBasicMaterial({ color: 0x18101d });
     part(g, SPH, m, [0, 0.42, 0], [0.36, 0.42, 0.4]).castShadow = true;
     part(g, SPH, m, [0, 0.98, 0.06], [0.2, 0.2, 0.22]);
+    return g;
+  }
+
+  /* Pfifltrigg: 1 m, ancho y agachado como una rana, sin pelo, piel pálida amarillenta,
+     hocico de tapir, nuca abultada, brazos largos con manos de muchos dedos, ropa viva y oro */
+  var PF_SKIN = mat(0xe6d79c, 0.55), PF_GOLD = mat(0xe6b655, 0.3, 0.85), PF_NOSE = mat(0xc9b47a, 0.6);
+  function makePfifltrigg(opt) {
+    opt = opt || {};
+    var g = new THREE.Group(), skin = PF_SKIN, cloth = mat(opt.cloth || 0xc4363a, 0.8), trim = mat(opt.trim || 0x2f6fb5, 0.8);
+    part(g, SPH, skin, [0, 0.33, -0.1], [0.29, 0.22, 0.27]);
+    part(g, SPH, cloth, [0, 0.45, 0.03], [0.3, 0.26, 0.33], [0.35, 0, 0]);
+    var belt = new THREE.Mesh(new THREE.TorusGeometry(0.29, 0.028, 8, 24), PF_GOLD); belt.rotation.x = Math.PI / 2 + 0.35; belt.position.set(0, 0.39, 0.0); belt.scale.set(1, 1.12, 1); g.add(belt);
+    part(g, SPH, trim, [0, 0.6, 0.12], [0.2, 0.08, 0.2]);
+    [-1, 1].forEach(function (s) {
+      // patas traseras plegadas, como de rana
+      limb(g, skin, [s * 0.2, 0.28, -0.12], [s * 0.4, 0.3, 0.1], 0.09, 0.07);
+      limb(g, skin, [s * 0.4, 0.3, 0.1], [s * 0.34, 0.05, -0.12], 0.065, 0.045);
+      part(g, SPH, skin, [s * 0.4, 0.3, 0.1], [0.07, 0.07, 0.07]);
+      part(g, SPH, skin, [s * 0.37, 0.03, 0.0], [0.08, 0.03, 0.17]);
+      // brazos largos con los codos en el suelo
+      var sh = [s * 0.25, 0.58, 0.16], el = [s * 0.37, 0.07, 0.34], wr = [s * 0.2, 0.11, 0.64];
+      limb(g, cloth, sh, el, 0.065, 0.052);
+      limb(g, skin, el, wr, 0.05, 0.04);
+      part(g, SPH, skin, el, [0.055, 0.055, 0.055]);
+      limb(g, PF_GOLD, [lerp(el[0], wr[0], 0.68), lerp(el[1], wr[1], 0.68), lerp(el[2], wr[2], 0.68)], [lerp(el[0], wr[0], 0.8), lerp(el[1], wr[1], 0.8), lerp(el[2], wr[2], 0.8)], 0.048, 0.046);
+      for (var k = 0; k < 8; k++) { var a = (k - 3.5) * 0.17 - s * 0.15; limb(g, skin, wr, [wr[0] + Math.sin(a) * 0.15, 0.08, wr[2] + Math.cos(a) * 0.15], 0.011, 0.005); }
+      part(g, SPH, DARK, [s * 0.085, 0.83, 0.37], [0.026, 0.026, 0.022]);
+      var ring = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.008, 6, 14), PF_GOLD); ring.position.set(s * 0.14, 0.74, 0.24); ring.rotation.y = Math.PI / 2; g.add(ring);
+    });
+    limb(g, skin, [0, 0.6, 0.12], [0, 0.74, 0.25], 0.09, 0.085);
+    var collar = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.022, 8, 18), PF_GOLD); collar.position.set(0, 0.66, 0.18); collar.rotation.x = Math.PI / 2 - 0.6; g.add(collar);
+    part(g, SPH, skin, [0, 0.79, 0.28], [0.13, 0.12, 0.14]);
+    part(g, SPH, skin, [0, 0.87, 0.17], [0.155, 0.145, 0.16]);       // nuca abultada
+    limb(g, skin, [0, 0.78, 0.37], [0, 0.66, 0.62], 0.058, 0.03);     // hocico de tapir
+    part(g, SPH, PF_NOSE, [0, 0.655, 0.63], [0.036, 0.03, 0.036]);
+    return g;
+  }
+
+  /* Une las mallas de una figura en una por material: muchas menos llamadas de dibujo.
+     Solo se usa en las figuras nuevas del bloque este. */
+  var _inv = new THREE.Matrix4(), _m = new THREE.Matrix4();
+  function bake(g) {
+    g.updateMatrixWorld(true); _inv.copy(g.matrixWorld).invert();
+    var mats = [], lists = [];
+    g.traverse(function (o) {
+      if (!o.isMesh) return;
+      var k = mats.indexOf(o.material); if (k < 0) { k = mats.length; mats.push(o.material); lists.push([]); }
+      var geo = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+      geo.applyMatrix4(_m.multiplyMatrices(_inv, o.matrixWorld)); lists[k].push(geo);
+    });
+    var out = new THREE.Group();
+    out.position.copy(g.position); out.rotation.copy(g.rotation); out.scale.copy(g.scale);
+    mats.forEach(function (mt, k) {
+      var n = 0; lists[k].forEach(function (q) { n += q.attributes.position.count; });
+      var P = new Float32Array(n * 3), N = new Float32Array(n * 3), o = 0;
+      lists[k].forEach(function (q) { P.set(q.attributes.position.array, o * 3); N.set(q.attributes.normal.array, o * 3); o += q.attributes.position.count; q.dispose(); });
+      var bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.BufferAttribute(P, 3)); bg.setAttribute('normal', new THREE.BufferAttribute(N, 3));
+      var mesh = new THREE.Mesh(bg, mt); mesh.castShadow = true; mesh.receiveShadow = true; out.add(mesh);
+    });
+    return out;
+  }
+
+  /* Variantes simples para figuras de fondo (la asamblea): pocas mallas y materiales compartidos */
+  var LITE = { fur: mat(0x15151c, 0.26, 0.3), muz: mat(0x292932, 0.5), coat: mat(0xf0e8d7, 1), skin: mat(0xe6d7bf, 0.75) };
+  function makeHrossLite() {
+    var g = new THREE.Group(), f = LITE.fur;
+    lathe(g, f, [[0.001, 0.22], [0.2, 0.25], [0.3, 0.55], [0.31, 0.95], [0.27, 1.35], [0.2, 1.62], [0.16, 1.76], [0.001, 1.8]], 12);
+    part(g, SPH, f, [0, 1.9, 0.03], [0.23, 0.25, 0.25]);
+    part(g, SPH, LITE.muz, [0, 1.84, 0.2], [0.13, 0.1, 0.12]);
+    [-1, 1].forEach(function (s) {
+      limb(g, f, [s * 0.14, 0.34, 0], [s * 0.15, 0.03, 0.06], 0.1, 0.08);
+      limb(g, f, [s * 0.27, 1.45, 0.02], [s * 0.36, 0.96, 0.2], 0.085, 0.06);
+    });
+    limb(g, f, [0, 0.45, -0.18], [0, 0.08, -0.5], 0.17, 0.12);
+    return g;
+  }
+  // Sorn de fondo: piernas largas y abiertas, brazos separados del cuerpo, cuello fino y cara larga
+  function makeSornLite() {
+    var g = new THREE.Group(), c = LITE.coat, s0 = LITE.skin;
+    [-1, 1].forEach(function (s) {
+      limb(g, c, [s * 0.2, 2.95, 0], [s * 0.36, 1.5, 0.08], 0.085, 0.06);
+      limb(g, s0, [s * 0.36, 1.5, 0.08], [s * 0.42, 0.03, 0.02], 0.055, 0.04);
+      part(g, SPH, s0, [s * 0.42, 0.04, 0.12], [0.09, 0.04, 0.24]);
+      limb(g, c, [s * 0.48, 4.12, 0], [s * 0.74, 3.25, 0.08], 0.07, 0.05);
+      limb(g, s0, [s * 0.74, 3.25, 0.08], [s * 0.66, 2.45, 0.3], 0.045, 0.03);
+      part(g, SPH, DARK, [s * 0.085, 5.07, 0.245], [0.035, 0.025, 0.025]);
+    });
+    lathe(g, c, [[0.001, 2.88], [0.24, 2.95], [0.34, 3.3], [0.52, 3.8], [0.52, 4.05], [0.4, 4.3], [0.12, 4.42], [0.001, 4.45]], 12).scale.z = 1.14;
+    limb(g, s0, [0, 4.4, 0.02], [0, 4.72, 0.05], 0.075, 0.06);
+    part(g, SPH, s0, [0, 4.96, 0.07], [0.2, 0.38, 0.22]);
+    part(g, CONE, c, [0, 5.4, 0.03], [0.15, 0.42, 0.17]);
+    limb(g, s0, [0, 5.03, 0.27], [0, 4.72, 0.36], 0.05, 0.03);
+    return g;
+  }
+  function makePfiflLite(cloth) {
+    var g = new THREE.Group(), skin = PF_SKIN, cl = mat(cloth, 0.8);
+    part(g, SPH, skin, [0, 0.33, -0.1], [0.29, 0.22, 0.27]);
+    part(g, SPH, cl, [0, 0.45, 0.03], [0.3, 0.26, 0.33], [0.35, 0, 0]);
+    [-1, 1].forEach(function (s) {
+      part(g, SPH, skin, [s * 0.36, 0.2, 0.0], [0.1, 0.16, 0.16]);
+      limb(g, cl, [s * 0.25, 0.58, 0.16], [s * 0.34, 0.05, 0.38], 0.065, 0.05);
+    });
+    part(g, SPH, skin, [0, 0.79, 0.28], [0.13, 0.12, 0.14]);
+    part(g, SPH, skin, [0, 0.87, 0.17], [0.155, 0.145, 0.16]);
+    limb(g, skin, [0, 0.78, 0.37], [0, 0.66, 0.62], 0.058, 0.03);
+    part(g, SPH, PF_GOLD, [0, 0.66, 0.18], [0.12, 0.03, 0.12]);
     return g;
   }
 
@@ -506,18 +1131,19 @@
 
   var FIG = 1.25;
   function put(scene, obj, x, y, z, ry, s) { obj.position.set(x, y, z); obj.rotation.y = ry || 0; obj.scale.multiplyScalar(s === undefined ? FIG : s); scene.add(obj); return obj; }
-  function onGround(obj, x, z, ry, s, lift) { return put(world, obj, x, gy(x, z) + (lift || 0), z, ry, s); }
+  function onGround(obj, x, z, ry, s, lift) { return put(layer, obj, x, gy(x, z) + (lift || 0), z, ry, s); }
 
   /* --- Torre de Augray: saliente con cueva en la pared este --- */
+  layer = layerAt(14);
   var caveX = AX, caveY = 27;
   for (var sx = 0; sx < 30; sx += 0.5) { var yy = terr(AX - sx, AZ).y; if (yy <= 25) { caveX = AX - sx; caveY = yy; break; } }
   var rock = mat(0xa9c4ac, 1, 0, { flatShading: true });
-  var ledge = new THREE.Mesh(new THREE.CylinderGeometry(4.6, 5.4, 8, 9), rock); ledge.position.set(caveX - 2.6, caveY - 4, AZ); ledge.castShadow = true; ledge.receiveShadow = true; world.add(ledge);
-  var mouth = new THREE.Mesh(SPH, new THREE.MeshBasicMaterial({ color: 0x120a12 })); mouth.position.set(caveX + 1.6, caveY + 2.6, AZ); mouth.scale.set(2.8, 4.8, 3.2); world.add(mouth);
-  var fire = new THREE.Mesh(SPH, new THREE.MeshBasicMaterial({ color: 0xffa040 })); fire.position.set(caveX - 0.4, caveY + 0.45, AZ - 0.6); fire.scale.set(0.45, 0.55, 0.45); world.add(fire);
-  var fireLight = new THREE.PointLight(0xff9a40, 1.5, 18); fireLight.position.set(caveX - 1.2, caveY + 1.6, AZ - 0.4); world.add(fireLight);
-  put(world, makeSorn(), caveX - 4.2, caveY, AZ + 2.2, -Math.PI / 2 - 0.3);
-  put(world, makeHuman(RANSOM), caveX - 5.6, caveY, AZ + 0.4, Math.PI / 2 + 0.6);
+  var ledge = new THREE.Mesh(new THREE.CylinderGeometry(4.6, 5.4, 8, 9), rock); ledge.position.set(caveX - 2.6, caveY - 4, AZ); ledge.castShadow = true; ledge.receiveShadow = true; layer.add(ledge);
+  var mouth = new THREE.Mesh(SPH, new THREE.MeshBasicMaterial({ color: 0x120a12 })); mouth.position.set(caveX + 1.6, caveY + 2.6, AZ); mouth.scale.set(2.8, 4.8, 3.2); layer.add(mouth);
+  var fire = new THREE.Mesh(SPH, new THREE.MeshBasicMaterial({ color: 0xffa040 })); fire.position.set(caveX - 0.4, caveY + 0.45, AZ - 0.6); fire.scale.set(0.45, 0.55, 0.45); layer.add(fire);
+  var fireLight = new THREE.PointLight(0xff9a40, 1.5, 18); fireLight.position.set(caveX - 1.2, caveY + 1.6, AZ - 0.4); layer.add(fireLight);
+  put(layer, makeSorn(), caveX - 4.2, caveY, AZ + 2.2, -Math.PI / 2 - 0.3);
+  put(layer, makeHuman(RANSOM), caveX - 5.6, caveY, AZ + 0.4, Math.PI / 2 + 0.6);
 
   /* --- Lugares en el suelo del cañón --- */
   var VZ = 8, SHIP_Z = -88, HERD_Z = 75;
@@ -544,27 +1170,32 @@
     for (i = 1; i <= 70; i++) { t = i / 70; x = lerp(base.x, end.x, t); z = lerp(base.z, end.z, t) + 7 * Math.sin(t * Math.PI * 4) * (1 - t); roadPts.push(new THREE.Vector3(x, gy(x, z) + 0.25, z)); }
     roadPts.push(new THREE.Vector3(caveX - 5.5, caveY + 0.2, AZ));
     var road = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(roadPts), 420, 0.32, 5, false), mat(0xf6e6c2, 1));
-    road.receiveShadow = true; world.add(road);
-    var dotM = mat(0xf6e6c2, 1), sx0 = AX + 15, sz0 = AZ + 5, ex = HALF - 3, ez = AZ + 18, n = Math.floor((ex - sx0) / 3.6);
-    for (i = 0; i <= n; i++) { t = i / n; x = lerp(sx0, ex, t); z = lerp(sz0, ez, t) + 2 * Math.sin(t * 7); var d = new THREE.Mesh(SPH, dotM); d.position.set(x, gy(x, z) + 0.2, z); d.scale.setScalar(0.38); world.add(d); }
+    road.receiveShadow = true; layerAt(13).add(road);
+    var dots = layerAt(13, 15), dotM = mat(0xf6e6c2, 1), sx0 = AX + 15, sz0 = AZ + 5, ex = HALF - 3, ez = AZ + 18, n = Math.floor((ex - sx0) / 3.6);
+    for (i = 0; i <= n; i++) { t = i / n; x = lerp(sx0, ex, t); z = lerp(sz0, ez, t) + 2 * Math.sin(t * 7); var d = new THREE.Mesh(SPH, dotM); d.position.set(x, gy(x, z) + 0.2, z); d.scale.setScalar(0.38); dots.add(d); }
   })();
 
-  // Aldea
-  [-2, -1, 0, 1, 2].forEach(function (k) { var z = VZ + k * 5.6; onGround(makeHut(), eastX(z, 10.5 + (k % 2 ? 1.5 : 0)), z, -Math.PI / 2 + (rng() - 0.5) * 0.5, 1.3); });
+  // Aldea (Hyoi y Ransom a la orilla desde el 9, el resto desde el 10, el eldil desde el 12)
+  layer = layerAt(9);
   onGround(makeHross(), vx, VZ, -2.2);
   onGround(makeHuman(RANSOM), eastX(VZ - 1.9, 3.4), VZ - 1.9, 0.6);
+  layer = layerAt(10);
+  [-2, -1, 0, 1, 2].forEach(function (k) { var z = VZ + k * 5.6; onGround(makeHut(), eastX(z, 10.5 + (k % 2 ? 1.5 : 0)), z, -Math.PI / 2 + (rng() - 0.5) * 0.5, 1.3); });
   onGround(makeHross({ muzzle: 0x9a9aa4, color: 0x1d1d24 }), eastX(VZ + 5.5, 6), VZ + 5.5, -1.5);
   onGround(makeHross(), eastX(VZ - 7, 4.5), VZ - 7, -0.6);
   onGround(makeHross(), eastX(VZ + 10, 5), VZ + 10, -2.6, FIG * 0.5);
+  layer = layerAt(12);
   onGround(makeEldil(), eastX(VZ + 11.8, 4.6), VZ + 11.8, 0, 1.3);
+  layer = layerAt(10);
   onGround(makeBoat(), eastX(VZ + 2, -1.2), VZ + 2, 0.12, FIG, 0.05);
   onGround(makeBoat(), eastX(VZ - 5, -1.5), VZ - 5, -0.2, FIG, 0.05);
 
   // Nave, cabaña y los dos secuestradores
-  onGround(makeShip(), shipX, SHIP_Z, 0.4, 1);
+  layer = layerAt(7);
+  gate(onGround(makeShip(), shipX, SHIP_Z, 0.4, 1), 7, 20);   // la esfera parte en el 21; queda la cabaña
   onGround(makeCabin(), westX(SHIP_Z + 10, 7.5), SHIP_Z + 10, 1.2, 1);
-  onGround(makeHuman(WESTON), westX(SHIP_Z + 5, 3.5), SHIP_Z + 5, 1.4);
-  onGround(makeHuman(DEVINE), westX(SHIP_Z + 6.6, 3.2), SHIP_Z + 6.6, 1.9);
+  gate(onGround(makeHuman(WESTON), westX(SHIP_Z + 5, 3.5), SHIP_Z + 5, 1.4), 7, 17);
+  gate(onGround(makeHuman(DEVINE), westX(SHIP_Z + 6.6, 3.2), SHIP_Z + 6.6, 1.9), 7, 17);
 
   // Caza del hnakra
   var hunt = new THREE.Group(); hunt.position.set(lakeX + 7.5, 0.02, LAKE_Z + 7); hunt.rotation.y = -2.2;
@@ -572,26 +1203,29 @@
   var h1 = makeHross({ spear: true }); h1.position.set(0, 0.25, 1.3); hunt.add(h1);
   var h2 = makeHross({ spear: true }); h2.position.set(0, 0.25, -1.4); h2.rotation.y = 0.4; hunt.add(h2);
   var r1 = makeHuman(RANSOM); r1.position.set(0, 0.25, 0); hunt.add(r1);
-  hunt.scale.setScalar(FIG); world.add(hunt);
+  hunt.scale.setScalar(FIG); world.add(gate(hunt, 13));
   var hnakraPivot = new THREE.Group(); hnakraPivot.position.set(lakeX - 2.5, -0.38, LAKE_Z - 1);
   var hk = makeHnakra(); hk.position.set(6.5, 0, 0); hk.scale.setScalar(FIG); hnakraPivot.add(hk);
   var foamM = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.75 });
   for (var fi = 0; fi < 16; fi++) { var fa = 0.25 + fi * 0.13, f = new THREE.Mesh(SPH, foamM); f.position.set(Math.cos(fa) * 6.5, 0.4, Math.sin(fa) * 6.5); f.scale.set(0.5 - fi * 0.022, 0.06, 0.5 - fi * 0.022); hnakraPivot.add(f); }
-  world.add(hnakraPivot);
+  world.add(gate(hnakraPivot, 7));
+  layer = layerAt(13);
   onGround(makeEldil(), lakeX + 14, LAKE_Z + 12, 0, 1.3);
 
   // Rebaño
+  layer = layerAt(8);
   onGround(makeSorn(), herdX, HERD_Z, 0.8);
   onGround(makeBeast(), westX(HERD_Z - 6, 11), HERD_Z - 6, 0.5);
   onGround(makeBeast(), westX(HERD_Z + 5, 12.5), HERD_Z + 5, 2.1);
   onGround(makeBeast(), westX(HERD_Z + 1, 15), HERD_Z + 1, -0.6, FIG * 0.85);
 
   /* --- Agujas, bosque y masas rosadas (instanciados) --- */
+  layer = land;
   var dummy = new THREE.Object3D(), tc = new THREE.Color();
   function instanced(geo, material, list, fn) {
     var m = new THREE.InstancedMesh(geo, material, list.length);
     list.forEach(function (it, i) { fn(it, i, m); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); });
-    m.castShadow = true; m.receiveShadow = true; world.add(m); return m;
+    m.castShadow = true; m.receiveShadow = true; layer.add(m); return m;
   }
   var spires = [], tallest = null;
   (function () {
@@ -672,7 +1306,7 @@
     var gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.18, 'rgba(170,215,255,1)'); gr.addColorStop(0.5, 'rgba(90,160,255,.25)'); gr.addColorStop(1, 'rgba(90,160,255,0)');
     x.fillStyle = gr; x.fillRect(0, 0, 64, 64);
     thulMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, opacity: 0, fog: false, depthWrite: false });
-    var s = new THREE.Sprite(thulMat); s.position.copy(THUL); s.scale.setScalar(30); world.add(s);
+    var s = new THREE.Sprite(thulMat); s.position.copy(THUL); s.scale.setScalar(30); world.add(gate(s, 7));
   })();
 
   /* ---------- Galería de habitantes (a escala real, 1 unidad = 1 m) ---------- */
@@ -691,7 +1325,11 @@
   })();
   var figs = {};
   function addFig(id, obj, x, h, ry, focusH) { obj.position.set(x, 0, 0); obj.rotation.y = ry || 0; gal.add(obj); figs[id] = { obj: obj, x: x, h: h, ry: ry || 0, fh: focusH || h }; }
-  addFig('pfifl', makePfifl(), -6.5, 1.2);
+  // Pfifltrigg: silueta mientras solo se conoce de oídas (11 a 16), modelo real desde el 17
+  var pfG = new THREE.Group();
+  pfG.add(gate(makePfifl(), 11, 16));
+  var pfReal = makePfifltrigg(); pfReal.rotation.y = 0.35; pfG.add(gate(pfReal, 17));
+  addFig('pfifl', pfG, -6.5, 1.2);
   addFig('ransom', makeHuman(RANSOM), -5.0, 1.84);
   var wd = new THREE.Group(), w1 = makeHuman(WESTON), w2 = makeHuman(DEVINE); w1.position.x = -0.42; w2.position.x = 0.46; wd.add(w1); wd.add(w2);
   addFig('wd', wd, -3.2, 1.8);
@@ -699,6 +1337,507 @@
   addFig('sorn', makeSorn(), 1.7, 5.6);
   addFig('eldil', makeEldil(), 4.3, 3.5);
   addFig('hnakra', makeHnakra(), 7.8, 1.3, -1.15, 3.6);
+  // Capítulo desde el que cada figura aparece en la galería (la regla siempre se ve)
+  var oyFig = makeEldil(1.9); oyFig.scale.set(1.15, 1.5, 1.15);   // una luz como la del eldil, más alta (unos 5 m) y más nítida
+  addFig('oyarsa', oyFig, 12.2, 5.2);
+  var FIG_FROM = { pfifl: 11, ransom: 1, wd: 1, hross: 9, sorn: 7, eldil: 13, hnakra: 7, oyarsa: 18 };
+  Object.keys(FIG_FROM).forEach(function (id) { gate(figs[id].obj, FIG_FROM[id]); });
+
+  /* ---------- Bloque este: tierra alta, cuevas y Meldilorn (desde el capítulo 16) ----------
+     Todo se construye aquí, después del resto, con su propio azar, para que los capítulos 1 a 15 no cambien. */
+  var rngE = (function (s) { return function () { s |= 0; s = s + 0x6D2B79F5 | 0; var t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })(19381016);
+  function rad(x, z) { return Math.sqrt((x - MX) * (x - MX) + (z - MZ) * (z - MZ)); }
+  var E = {};
+
+  // Camino sobre la tierra alta: de la torre de Augray al borde de la cuenca y bajando a la orilla
+  var roadE = [];
+  (function () {
+    var wp = [[caveX - 5.5, AZ], [caveX + 0.5, AZ + 8], [AX - 2, AZ + 18], [AX + 16, AZ + 15], [96, 33], [122, 25], [146, 15], [164, 10], [172, 8], [177, 4], [180, 10], [184, 4], [188.5, 7]];
+    var curve = new THREE.CatmullRomCurve3(wp.map(function (p) { return V3(p[0], 0, p[1]); }));
+    var n = Math.round(curve.getLength() / 1.1), pts = curve.getSpacedPoints(n), lc = V3(caveX - 2.6, 0, AZ);
+    pts.forEach(function (p) {
+      var y = gy(p.x, p.z) + 0.3;
+      if (Math.hypot(p.x - lc.x, p.z - lc.z) < 5.2) y = Math.max(y, caveY + 0.2);
+      roadE.push(V3(p.x, y, p.z));
+    });
+    var tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(roadE), roadE.length * 3, 0.32, 5, false), mat(0xf6e6c2, 1));
+    tube.receiveShadow = true; layerAt(16).add(tube);
+  })();
+  function nearRoad(x, z, d) { for (var i = 0; i < roadE.length; i += 2) { var p = roadE[i]; if ((p.x - x) * (p.x - x) + (p.z - z) * (p.z - z) < d * d) return true; } return false; }
+
+  // Cruce: Augray camina por el camino con Ransom sentado en su hombro
+  layer = layerAt(16);
+  (function () {
+    var i = 0; while (i < roadE.length - 2 && roadE[i].x < 135) i++;
+    var p = roadE[i], q = roadE[i + 2], ry = Math.atan2(q.x - p.x, q.z - p.z);
+    var aug = makeSorn({ stride: 0.45 });
+    var rr = makeHuman(Object.assign({ sit: true }, RANSOM)); rr.position.set(-0.46, 3.34, 0.02); rr.rotation.y = -0.25; aug.add(rr);
+    aug = onGround(bake(aug), p.x, p.z, ry);
+    aug.updateMatrixWorld(true);
+    E.cruceR = aug.localToWorld(rr.position.clone());
+    E.vCruce = { p: V3(p.x, gy(p.x, p.z) + 4, p.z), lift: 5.5, v: { d: 24, az: ry / D2R - 70, el: 10 } };
+  })();
+
+  // Cuevas de los séroni: un peñasco con bocas de cueva, el anciano sentado y dos de pie
+  (function () {
+    var cx = 158, cz = -35, base = gy(cx, cz), rk = mat(0xa9c4ac, 1, 0, { flatShading: true }), ico = new THREE.IcosahedronGeometry(1, 1);
+    [[0, 7, 0, 10, 8, 7], [-8, 4, 1, 7, 6, 6], [8, 5, 0, 7.5, 7, 6], [2, 13, -2, 6.5, 5, 5.5], [-4, 10, -3, 5, 4.5, 5]].forEach(function (b) {
+      var m = part(layer, ico, rk, [cx + b[0], base + b[1] - 2, cz + b[2]], [b[3], b[4], b[5]], [0.3, b[0] * 0.1, 0]); m.receiveShadow = true;
+    });
+    var mouthM = new THREE.MeshBasicMaterial({ color: 0x120a12 });
+    [[-6.5, 2.2, 5.6, 1.3, 2.2], [-0.5, 1.8, 6.9, 1.6, 2.6], [6.5, 2.6, 6.1, 1.3, 2.1], [1.5, 9.5, 3.6, 1.1, 1.8]].forEach(function (b) {
+      var m = new THREE.Mesh(SPH, mouthM); m.position.set(cx + b[0], base + b[1], cz + b[2]); m.scale.set(b[3], b[4], 0.8); layer.add(m);
+    });
+    var z0 = cz + 12;
+    onGround(bake(makeSorn({ seated: true, coat: 0xd9d3c6 })), cx - 0.5, z0, 0.1);
+    onGround(bake(makeSorn()), cx - 7, z0 + 1.5, 0.7);
+    onGround(bake(makeSorn()), cx + 6.5, z0 + 1.2, -0.6);
+    onGround(bake(makeHuman(RANSOM)), cx - 0.3, z0 + 6.5, Math.PI);
+    E.vCuevas = { p: V3(cx, base + 4, z0 - 2), lift: 12, v: { d: 36, az: 14, el: 12 } };
+  })();
+
+  // Agujas alrededor de la cuenca y sueltas en la meseta, masas rosadas y bosque púrpura en la orilla
+  layer = landE;
+  var ENTRY = Math.atan2(8 - MZ, 172 - MX);
+  // Líneas de vista de las cámaras de lugares en la meseta: ahí no se ponen agujas ni masas
+  var EVIEWS = [E.vCruce, E.vCuevas].map(function (s) { return { a: s.p, b: viewPos(s.p, s.v) }; });
+  function inView(x, z, r) {
+    for (var i = 0; i < EVIEWS.length; i++) {
+      var a = EVIEWS[i].a, b = EVIEWS[i].b, dx = b.x - a.x, dz = b.z - a.z, t = Math.max(0, Math.min(1.2, ((x - a.x) * dx + (z - a.z) * dz) / (dx * dx + dz * dz)));
+      if (Math.hypot(x - a.x - dx * t, z - a.z - dz * t) < r) return true;
+    }
+    return false;
+  }
+  (function () {
+    var sp = [];
+    function okE(x, z) { return x > HALF + 4 && x < 3 * HALF - 4 && Math.abs(z) < HALF - 4; }
+    for (var a = -Math.PI; a < Math.PI; a += 0.035 + rngE() * 0.045) {
+      var da = Math.abs(Math.atan2(Math.sin(a - ENTRY), Math.cos(a - ENTRY)));
+      if (da < 0.22 || rngE() < 0.15) continue;
+      var r = 63 + rngE() * 9, x = MX + Math.cos(a) * r, z = MZ + Math.sin(a) * r;
+      if (!okE(x, z) || nearRoad(x, z, 6) || inView(x, z, 9)) continue;
+      var h = 9 + rngE() * rngE() * 36; sp.push({ x: x, z: z, y: terr(x, z).y - 1.5, h: h, r: 1.1 + rngE() * 1.3 + h * 0.035 });
+    }
+    for (var i = 0; i < 60; i++) {
+      var x2 = HALF + 6 + rngE() * (2 * HALF - 12), z2 = -HALF + 6 + rngE() * (2 * HALF - 12);
+      if (rad(x2, z2) < 70 || nearRoad(x2, z2, 7) || Math.hypot(x2 - 158, z2 + 30) < 24 || inView(x2, z2, 9)) continue;
+      sp.push({ x: x2, z: z2, y: terr(x2, z2).y - 1.5, h: 4 + rngE() * 11, r: 0.9 + rngE() * 1.2 });
+    }
+    var geo = new THREE.ConeGeometry(1, 1, 6); geo.translate(0, 0.5, 0);
+    instanced(geo, mat(0xffffff, 0.9, 0, { flatShading: true }), sp, function (s, k, m) {
+      dummy.position.set(s.x, s.y, s.z); dummy.rotation.set((rngE() - 0.5) * 0.08, rngE() * 6, (rngE() - 0.5) * 0.08); dummy.scale.set(s.r, s.h + 1.5, s.r);
+      m.setColorAt(k, tc.setHSL(0.36 + rngE() * 0.06, 0.16 + rngE() * 0.12, 0.66 + rngE() * 0.14));
+    });
+    var blobs = [], sites = 0;
+    for (var tries = 0; tries < 300 && sites < 6; tries++) {
+      var x = HALF + 14 + rngE() * (2 * HALF - 28), z = -HALF + 14 + rngE() * (2 * HALF - 28);
+      if (rad(x, z) < 80 || nearRoad(x, z, 14) || Math.hypot(x - 158, z + 30) < 28 || inView(x, z, 16)) continue;
+      sites++;
+      var n = 8 + Math.floor(rngE() * 7);
+      for (var j = 0; j < n; j++) { var bx = x + (rngE() - 0.5) * 15, bz = z + (rngE() - 0.5) * 15, br = 2.2 + rngE() * 4.4; blobs.push({ x: bx, z: bz, r: br, y: terr(bx, bz).y + br * 0.45 }); }
+    }
+    instanced(new THREE.IcosahedronGeometry(1, 1), mat(0xffffff, 0.95, 0, { flatShading: true }), blobs, function (b, k, m) {
+      dummy.position.set(b.x, b.y, b.z); dummy.rotation.set(rngE() * 3, rngE() * 3, 0); dummy.scale.set(b.r, b.r * 0.82, b.r);
+      m.setColorAt(k, tc.setHSL(0.975 + rngE() * 0.02, 0.62, 0.7 + rngE() * 0.09));
+    });
+    // Bosque púrpura en el anillo de la orilla (despejado donde baja el camino)
+    var tr = [];
+    for (var t2 = 0; t2 < 3000 && tr.length < 190; t2++) {
+      var a2 = rngE() * 6.283, r2 = 40.8 + rngE() * 4.6, tx = MX + Math.cos(a2) * r2, tz = MZ + Math.sin(a2) * r2, info = terr(tx, tz);
+      if (info.t > 0.06 || info.y < 0.45) continue;
+      if (Math.hypot(tx - 188, tz - 6) < 8 || Math.abs(Math.atan2(Math.sin(a2 - Math.PI), Math.cos(a2 - Math.PI))) < 0.28) continue;
+      tr.push({ x: tx, y: info.y, z: tz, h: 12 + rngE() * 10 });
+    }
+    var sg = new THREE.CylinderGeometry(0.1, 0.24, 1, 5); sg.translate(0, 0.5, 0);
+    instanced(sg, mat(0x7650a6, 0.7), tr, function (t) { dummy.position.set(t.x, t.y - 0.3, t.z); dummy.rotation.set(0, 0, 0); dummy.scale.set(1, t.h, 1); });
+    var lv = []; tr.forEach(function (t) { for (var k = 0; k < 3; k++) lv.push({ t: t, k: k }); });
+    var L = instanced(new THREE.IcosahedronGeometry(1, 1), mat(0xcba6ee, 0.25, 0, { transparent: true, opacity: 0.74, flatShading: true }), lv, function (l) {
+      var a = rngE() * 6.283, s = 0.8 + rngE() * 0.6;
+      dummy.position.set(l.t.x + Math.cos(a) * 1.1, l.t.y + l.t.h * (0.84 + l.k * 0.07), l.t.z + Math.sin(a) * 1.1);
+      dummy.rotation.set((rngE() - 0.5) * 0.5, a, (rngE() - 0.5) * 0.5); dummy.scale.set(2.5 * s, 0.32, 1.15 * s);
+    });
+    L.receiveShadow = false;
+  })();
+
+  /* Meldilorn. La avenida sube hacia el este, del embarcadero (oeste) a la cima de la isla. */
+  var AV0 = 220.2, AVS = 1.6, AVZ = 2.4, OYX = 231.6, KX = 222, KZ = -8.5;
+  (function () {
+    // Arboleda de la cima: troncos lisos y pálidos coronados por flores doradas (desde 16)
+    layer = layerAt(16);
+    var gt = [], ang = [-82, -60, -38, -14, 10, 34, 58, 82, -48, 22, -26], rr = [7.5, 9.5, 7, 9.8, 7.2, 9.6, 7.4, 8.8, 5.8, 6, 12.2];
+    ang.forEach(function (a, i) { var x = MX + Math.cos(a * D2R) * rr[i], z = MZ + Math.sin(a * D2R) * rr[i]; gt.push({ x: x, z: z, y: gy(x, z), h: 28 + rngE() * 8 }); });
+    var tg = new THREE.CylinderGeometry(0.22, 0.5, 1, 10); tg.translate(0, 0.5, 0);
+    instanced(tg, mat(0xeee6d6, 0.45), gt, function (t) { dummy.position.set(t.x, t.y - 0.4, t.z); dummy.rotation.set((rngE() - 0.5) * 0.05, 0, (rngE() - 0.5) * 0.05); dummy.scale.set(1, t.h, 1); });
+    var fl = []; gt.forEach(function (t) { for (var k = 0; k < 6; k++) fl.push(t); });
+    instanced(new THREE.IcosahedronGeometry(1, 1), mat(0xffffff, 0.55, 0.1, { flatShading: true, emissive: 0x3a2600 }), fl, function (t, k, m) {
+      var a = rngE() * 6.283, d = k % 6 === 0 ? 0 : 1.6 + rngE() * 1.6, s = 2.2 + rngE() * 1.6;
+      dummy.position.set(t.x + Math.cos(a) * d, t.y + t.h - 1 + (k % 6 === 0 ? 1.5 : rngE() * 1.5), t.z + Math.sin(a) * d);
+      dummy.rotation.set(rngE() * 3, rngE() * 3, 0); dummy.scale.set(s, s * 0.75, s);
+      m.setColorAt(k, tc.setHSL(0.11 + rngE() * 0.03, 0.85, 0.55 + rngE() * 0.12));
+    });
+
+    // Desde 17: embarcadero, barcas, casas de huéspedes, avenida de monolitos, eldila y el taller
+    layer = layerAt(17);
+    var wood = mat(0x6b4a36, 0.9), stone = mat(0xdccfbf, 0.9, 0, { flatShading: true }), stoneD = mat(0xbfae98, 0.9, 0, { flatShading: true });
+    part(layer, new THREE.BoxGeometry(8.5, 0.3, 2.2), wood, [214.6, 0.38, -6.5]);
+    [211, 213.4, 215.8].forEach(function (x) { [-1, 1].forEach(function (s) { part(layer, new THREE.CylinderGeometry(0.12, 0.12, 1.6, 6), wood, [x, -0.3, -6.5 + s * 1]); }); });
+    var path = []; [[218.2, -6.5], [219.6, -3.5], [AV0 - 0.6, 0], [OYX - 1.2, 0]].forEach(function (p) { path.push(V3(p[0], 0, p[1])); });
+    // Sendero plano: una cinta pegada al suelo
+    var pp = new THREE.CatmullRomCurve3(path).getSpacedPoints(60), rib = new Float32Array(pp.length * 6), ri = [];
+    pp.forEach(function (p, i) {
+      var q = pp[Math.min(i + 1, pp.length - 1)], o = pp[Math.max(i - 1, 0)], dx = q.x - o.x, dz = q.z - o.z, l = Math.hypot(dx, dz) || 1, nx = -dz / l * 0.7, nz = dx / l * 0.7;
+      rib.set([p.x + nx, gy(p.x + nx, p.z + nz) + 0.07, p.z + nz, p.x - nx, gy(p.x - nx, p.z - nz) + 0.07, p.z - nz], i * 6);
+      if (i) ri.push(2 * i - 2, 2 * i - 1, 2 * i, 2 * i, 2 * i - 1, 2 * i + 1);
+    });
+    var rg = new THREE.BufferGeometry(); rg.setAttribute('position', new THREE.BufferAttribute(rib, 3)); rg.setIndex(ri); rg.computeVertexNormals();
+    var pm = new THREE.Mesh(rg, mat(0xf6e6c2, 1, 0, { side: THREE.DoubleSide })); pm.receiveShadow = true; layer.add(pm);
+    var boatA = makeBoat(); var rower = makeHross(); rower.position.set(0, 0.25, 0.7); boatA.add(rower);
+    put(layer, bake(boatA), 203, 0.02, -2, Math.PI / 2 + 0.25);
+    put(layer, makeBoat(), 213.5, 0.02, -8.6, Math.PI / 2);
+    [[0, 12.4], [52, 12.2], [-52, 12.2]].forEach(function (h) {
+      var a = h[0] * D2R, x = MX + Math.cos(a) * h[1], z = MZ + Math.sin(a) * h[1], hg = new THREE.Group();
+      part(hg, new THREE.BoxGeometry(7, 2.1, 3), stone, [0, 1.05, 0]).receiveShadow = true;
+      part(hg, new THREE.BoxGeometry(7.5, 0.35, 3.5), stoneD, [0, 2.25, 0]);
+      part(hg, new THREE.BoxGeometry(1, 1.5, 0.1), DARK, [0, 0.75, 1.52]);
+      put(layer, hg, x, gy(x, z) - 0.4, z, -(a + Math.PI / 2), 1);
+    });
+    var slabG = new THREE.BoxGeometry(0.8, 4.6, 0.4), panelG = new THREE.BoxGeometry(0.56, 2.6, 0.06);
+    var av = new THREE.Group();
+    for (var i = 0; i < 7; i++) [-1, 1].forEach(function (s) {
+      var x = AV0 + i * AVS, z = s * AVZ, y = gy(x, z) - 0.4;
+      part(av, slabG, stone, [x, y + 2.3, z], null, [(rngE() - 0.5) * 0.04, (rngE() - 0.5) * 0.06, (rngE() - 0.5) * 0.04]);
+      part(av, panelG, stoneD, [x, y + 2.7, z - s * 0.2]);   // relieve en la cara que mira al camino
+    });
+    layer.add(bake(av));
+    for (var e = 0; e < 9; e++) {
+      var ea = (e / 9) * 6.283 + 0.4, er = 4 + (e % 3) * 3.6, ex = MX + Math.cos(ea) * er, ez = MZ + Math.sin(ea) * er;
+      if (ex < MX && Math.abs(ez) < 3.6) ez += 4 * (ez < 0 ? -1 : 1);
+      onGround(makeEldil(), ex, ez, 0, 1.3);
+    }
+    // Taller de Kanakaberaka: el pfifltrigg trabaja una losa y Ransom posa delante
+    part(layer, new THREE.BoxGeometry(1.9, 0.24, 1.3), stoneD, [KX + 1.45, gy(KX + 1.45, KZ) + 0.1, KZ], null, [0, 0, 0.05]);
+    onGround(bake(makePfifltrigg({ cloth: 0x2f6fb5, trim: 0xd9822b })), KX, KZ, Math.PI / 2);
+    onGround(bake(makeHuman(RANSOM)), KX + 4.1, KZ + 0.3, -Math.PI / 2 - 0.15);
+    E.kanakaR = V3(KX + 4.1, gy(KX + 4.1, KZ + 0.3), KZ + 0.3);
+
+    // Desde 18: Oyarsa en la cima y Ransom ante la luz
+    layer = layerAt(18);
+    var oy = onGround(makeEldil(1.9), OYX, 0, 0, 1);
+    oy.scale.set(1.5, 2.3, 1.5);
+    onGround(bake(makeHuman(RANSOM)), OYX - 2.6, 0, Math.PI / 2);
+    E.oyR = V3(OYX - 2.6, gy(OYX - 2.6, 0), 0);
+    // Andas al pie de la avenida: con un hross muerto en cada una solo en el 18
+    var bier = layerAt(18), dead = layerAt(18, 18);
+    [-3.3, 0, 3.3].forEach(function (z) {
+      var x = 218.9, y = gy(x, z);
+      part(bier, new THREE.BoxGeometry(2.9, 0.12, 0.95), wood, [x, y + 0.5, z]);
+      [-1.25, 1.25].forEach(function (dx) { part(bier, new THREE.BoxGeometry(0.12, 0.5, 0.85), wood, [x + dx, y + 0.25, z]); });
+      var hg = new THREE.Group(), h = bake(makeHrossLite()); h.rotation.x = -Math.PI / 2; hg.add(h);
+      hg.position.set(x - 1.3, y + 0.56 + 0.3 * FIG, z); hg.rotation.y = -Math.PI / 2; hg.scale.setScalar(FIG); dead.add(hg);
+    });
+    // Weston y Devine custodiados por dos hrossa con lanza (18 a 20)
+    layer = layerAt(18, 20);
+    onGround(bake(makeHuman(WESTON)), 219.8, 6.0, Math.PI / 2 + 0.2);
+    onGround(bake(makeHuman(DEVINE)), 219.6, 7.5, Math.PI / 2 + 0.3);
+    onGround(bake(makeHross({ spear: true })), 218.2, 4.9, Math.PI / 2 - 0.4);
+    onGround(bake(makeHross({ spear: true })), 221.4, 8.9, -Math.PI / 2 - 0.6);
+    // La asamblea en silencio a ambos lados de la avenida (figuras simplificadas)
+    [[222, 1, 'h'], [223.6, 1, 'p', 0xd9822b], [225.2, 1, 'h'], [226.8, 1, 'p', 0x3f8f5a], [228.4, 1, 'h'],
+     [222.2, -1, 'p', 0xc4363a], [224, -1, 'h'], [225.8, -1, 'p', 0x7a4fb0], [227.6, -1, 'h']].forEach(function (f) {
+      onGround(bake(f[2] === 'h' ? makeHrossLite() : makePfiflLite(f[3])), f[0], f[1] * 4.6, f[1] > 0 ? Math.PI : 0);
+    });
+    [[224.4, 1], [227.8, 1], [226, -1]].forEach(function (f) { onGround(bake(makeSornLite()), f[0], f[1] * 7.2, f[1] > 0 ? Math.PI : 0); });
+  })();
+
+  /* ---------- Inglaterra y los cielos (capítulos 1 a 6, 21 y 22) ----------
+     Cada escena es su propio THREE.Scene y usa su propio azar, para que Malacandra no cambie. */
+  function mkRng(s) { return function () { s |= 0; s = s + 0x6D2B79F5 | 0; var t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function glowTex(stops) {
+    var cv = document.createElement('canvas'); cv.width = cv.height = 128; var x = cv.getContext('2d');
+    var gr = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+    stops.forEach(function (s) { gr.addColorStop(s[0], s[1]); });
+    x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
+    return new THREE.CanvasTexture(cv);
+  }
+  function glow(tex, scale, op) {
+    var s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: op || 1, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+    s.scale.setScalar(scale); return s;
+  }
+  // Cinta plana pegada al suelo a lo largo de unos puntos
+  function ribbon(pts, w, hf, m) {
+    var P = new Float32Array(pts.length * 6), idx = [];
+    pts.forEach(function (p, i) {
+      var q = pts[Math.min(i + 1, pts.length - 1)], o = pts[Math.max(i - 1, 0)], dx = q.x - o.x, dz = q.z - o.z, l = Math.hypot(dx, dz) || 1, nx = -dz / l * w / 2, nz = dx / l * w / 2;
+      P.set([p.x + nx, hf(p.x + nx, p.z + nz) + 0.06, p.z + nz, p.x - nx, hf(p.x - nx, p.z - nz) + 0.06, p.z - nz], i * 6);
+      if (i) idx.push(2 * i - 2, 2 * i - 1, 2 * i, 2 * i, 2 * i - 1, 2 * i + 1);
+    });
+    var g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(P, 3)); g.setIndex(idx); g.computeVertexNormals();
+    var mesh = new THREE.Mesh(g, m); mesh.receiveShadow = true; return mesh;
+  }
+  // Prisma triangular para tejados: largo en x, ancho w en z, alto h
+  function roofGeo(len, w, h) {
+    var g = new THREE.CylinderGeometry(1, 1, len, 3, 1); g.rotateZ(Math.PI / 2); g.rotateX(-Math.PI / 2); g.scale(1, h / 1.5, w / 1.732); g.translate(0, h / 3, 0);
+    return g;
+  }
+
+  /* --- Inglaterra: un diorama de 90 x 90 al anochecer, tras la lluvia --- */
+  var tierra = new THREE.Scene(), TT = {};
+  (function () {
+    var R = mkRng(19380101), TH = 45;
+    function roadZ(x) { return 8 + 4 * Math.sin(x * 0.05); }
+    var FLATS = [{ x: 15, z: -24, r: 24 }, { x: -25, z: -2, r: 8 }, { x: 36, z: 20, r: 9 }, { x: -34, z: 30, r: 7 }];
+    function th(x, z) {
+      var h = Math.max(0, 5 * (fbm(x * 0.035 + 20, z * 0.035 + 20) - 0.36)) + 2.5 * sstep(32, 46, Math.max(Math.abs(x), Math.abs(z)));
+      h *= sstep(2.5, 12, Math.abs(z - roadZ(x)));
+      FLATS.forEach(function (f) { h *= sstep(f.r * 0.7, f.r * 1.15, Math.hypot(x - f.x, z - f.z)); });
+      return h;
+    }
+    TT.h = th; TT.roadZ = roadZ;
+    // Vistas de los lugares; entre cada lugar y su cámara no se plantan árboles
+    TT.views = {
+      camino: { p: V3(-8, 1.2, roadZ(-8)), lift: 4.6, v: { d: 19, az: 40, el: 20 } },
+      casita: { p: V3(-25, 1.6, -2), lift: 3.6, v: { d: 19, az: 18, el: 15 } },
+      rise: { p: V3(14, 2, -26), lift: 10, v: { d: 40, az: 205, el: 34 } },
+      pub: { p: V3(36, 2.2, 18), lift: 4.8, v: { d: 21, az: 200, el: 13 } },
+      estudio: { p: V3(-32, 1.8, 30), lift: 3.6, v: { d: 15, az: 62, el: 12 } }
+    };
+    var lines = Object.keys(TT.views).map(function (k) { var w = TT.views[k]; return { a: w.p, b: viewPos(w.p, w.v) }; });
+    function inLine(x, z) {
+      return lines.some(function (l) {
+        var dx = l.b.x - l.a.x, dz = l.b.z - l.a.z, t = Math.max(0, Math.min(1, ((x - l.a.x) * dx + (z - l.a.z) * dz) / (dx * dx + dz * dz)));
+        return Math.hypot(x - l.a.x - dx * t, z - l.a.z - dz * t) < 5;
+      });
+    }
+    function on(grp, obj, x, z, ry, s) { obj.position.set(x, th(x, z), z); obj.rotation.y = ry || 0; obj.scale.multiplyScalar(s === undefined ? FIG : s); grp.add(obj); return obj; }
+    function grp(from, to) { var g = new THREE.Group(); tierra.add(g); return gate(g, from, to); }
+    function box(g, w, h, d, m, x, y, z, ry) { var o = part(g, new THREE.BoxGeometry(w, h, d), m, [x, y, z], null, [0, ry || 0, 0]); o.receiveShadow = true; return o; }
+
+    // Cielo de anochecer: una cúpula con franja cálida en el horizonte
+    var skyG = new THREE.SphereGeometry(500, 32, 16), sp = skyG.attributes.position, sc = new Float32Array(sp.count * 3);
+    var stops = [[-1, 0x3d4652], [-0.02, 0x6a6878], [0.01, 0xf2b27e], [0.06, 0xd7a08e], [0.17, 0x9a98ae], [0.45, 0x4d5a7e], [1, 0x323d5e]], ca = new THREE.Color(), cb = new THREE.Color();
+    for (var i = 0; i < sp.count; i++) {
+      var yy = sp.getY(i) / 500, k = 0; while (k < stops.length - 2 && yy > stops[k + 1][0]) k++;
+      ca.setHex(stops[k][1]).lerp(cb.setHex(stops[k + 1][1]), sstep(stops[k][0], stops[k + 1][0], yy));
+      sc.set([ca.r, ca.g, ca.b], i * 3);
+    }
+    skyG.setAttribute('color', new THREE.BufferAttribute(sc, 3));
+    TT.skyMat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false });
+    var sky = new THREE.Mesh(skyG, TT.skyMat); sky.rotation.y = -0.5; tierra.add(sky);
+    tierra.background = new THREE.Color(0x323d5e);
+    tierra.fog = new THREE.Fog(0x9a93a2, 150, 520);
+    TT.hemi = new THREE.HemisphereLight(0xb8c0dc, 0x56653f, 0.62); tierra.add(TT.hemi);
+    TT.sun = new THREE.DirectionalLight(0xffc48a, 0.85); TT.sun.position.set(-75, 24, -25); TT.sun.castShadow = true;
+    TT.sun.shadow.mapSize.set(1024, 1024); var c = TT.sun.shadow.camera; c.left = -64; c.right = 64; c.top = 64; c.bottom = -64; c.near = 10; c.far = 220; TT.sun.shadow.bias = -0.0008;
+    tierra.add(TT.sun);
+
+    var base = grp(1);
+    // Suelo con lomas suaves y faldas de tierra
+    var g = new THREE.PlaneGeometry(2 * TH, 2 * TH, 72, 72); g.rotateX(-Math.PI / 2);
+    var pos = g.attributes.position, col = new Float32Array(pos.count * 3), gA = new THREE.Color(0x4f7a3c), gB = new THREE.Color(0x7d9a4c), gC = new THREE.Color(0x96a05a);
+    for (i = 0; i < pos.count; i++) {
+      var x = pos.getX(i), z = pos.getZ(i), h = th(x, z); pos.setY(i, h);
+      ca.copy(gA).lerp(gB, fbm(x * 0.2 + 3, z * 0.2 + 9)).lerp(gC, sstep(1, 4, h) * 0.6);
+      col.set([ca.r, ca.g, ca.b], i * 3);
+    }
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.computeVertexNormals();
+    var ground = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1 })); ground.receiveShadow = true; base.add(ground);
+    var soil = mat(0x3e3226, 1, 0, { side: THREE.DoubleSide });
+    [[-TH, -TH, TH, -TH], [-TH, TH, TH, TH], [-TH, -TH, -TH, TH], [TH, -TH, TH, TH]].forEach(function (e) {
+      var N = 72, P = new Float32Array((N + 1) * 6), idx = [];
+      for (var j = 0; j <= N; j++) { var xx = lerp(e[0], e[2], j / N), zz = lerp(e[1], e[3], j / N); P.set([xx, th(xx, zz), zz, xx, -4, zz], j * 6); if (j < N) idx.push(2 * j, 2 * j + 1, 2 * j + 2, 2 * j + 2, 2 * j + 1, 2 * j + 3); }
+      var sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(P, 3)); sg.setIndex(idx); sg.computeVertexNormals(); base.add(new THREE.Mesh(sg, soil));
+    });
+    // Camino mojado, sendero a la verja y a la casita
+    var mud = mat(0x8c7a62, 0.55, 0.05), road = [];
+    for (x = -TH; x <= TH; x += 1) road.push(V3(x, 0, roadZ(x)));
+    base.add(ribbon(road, 2.6, th, mud));
+    base.add(ribbon([V3(14, 0, roadZ(14) - 1), V3(14, 0, -5), V3(14, 0, -13)], 1.8, th, mud));
+    base.add(ribbon([V3(-25, 0, roadZ(-25) - 1), V3(-25, 0, 0.6)], 1.1, th, mud));
+
+    // Setos a los lados del camino, con huecos donde salen los senderos
+    var hedge = [], HC = new THREE.Color();
+    function hedgeRun(x0, z0, x1, z1, hgt, w) {
+      var n = Math.max(1, Math.round(Math.hypot(x1 - x0, z1 - z0) / 1.8));
+      for (var j = 0; j < n; j++) { var t = (j + 0.5) / n; hedge.push({ x: lerp(x0, x1, t), z: lerp(z0, z1, t), l: Math.hypot(x1 - x0, z1 - z0) / n + 0.25, h: hgt * (0.9 + R() * 0.2), w: w, a: Math.atan2(z1 - z0, x1 - x0) }); }
+    }
+    function roadHedge(side, gaps) {
+      for (var xx = -TH + 1; xx < TH - 1; xx += 1.8) {
+        var mid = xx + 0.9; if (gaps.some(function (gp) { return mid > gp[0] && mid < gp[1]; })) continue;
+        hedgeRun(xx, roadZ(xx) + side * 2.6, xx + 1.8, roadZ(xx + 1.8) + side * 2.6, 1.3, 0.9);
+      }
+    }
+    roadHedge(-1, [[-27.5, -22.5], [11.8, 16.2]]); roadHedge(1, [[32.5, 39.5]]);
+    // El seto alto de The Rise, con la verja en medio
+    hedgeRun(-4, -5, 12.4, -5, 3.3, 1.3); hedgeRun(15.6, -5, 34, -5, 3.3, 1.3);
+    hedgeRun(-4, -5, -4, -43, 3.3, 1.3); hedgeRun(34, -5, 34, -43, 3.3, 1.3); hedgeRun(-4, -43, 34, -43, 3.3, 1.3);
+    var layerSave = layer; layer = base;
+    instanced(new THREE.BoxGeometry(1, 1, 1), mat(0xffffff, 1, 0, { flatShading: true }), hedge, function (hd, j, m) {
+      dummy.position.set(hd.x, th(hd.x, hd.z) + hd.h / 2 - 0.1, hd.z); dummy.rotation.set(0, -hd.a, 0); dummy.scale.set(hd.l, hd.h, hd.w);
+      m.setColorAt(j, HC.setHSL(0.27 + R() * 0.04, 0.42, 0.2 + R() * 0.07));
+    });
+    // Árboles sueltos
+    var trees = [];
+    for (var tr = 0; tr < 400 && trees.length < 26; tr++) {
+      x = -42 + R() * 84; z = -42 + R() * 84;
+      if (Math.abs(z - roadZ(x)) < 6 || inLine(x, z) || (x > -8 && x < 38 && z < -1) || FLATS.some(function (f) { return Math.hypot(x - f.x, z - f.z) < f.r + 3; })) continue;
+      trees.push({ x: x, z: z, y: th(x, z), h: 3.5 + R() * 3, r: 2 + R() * 1.6 });
+    }
+    var tg = new THREE.CylinderGeometry(0.22, 0.34, 1, 6); tg.translate(0, 0.5, 0);
+    instanced(tg, mat(0x4a3a2c, 1), trees, function (t) { dummy.position.set(t.x, t.y - 0.2, t.z); dummy.rotation.set(0, 0, 0); dummy.scale.set(1, t.h, 1); });
+    instanced(new THREE.IcosahedronGeometry(1, 1), mat(0xffffff, 1, 0, { flatShading: true }), trees, function (t, j, m) {
+      dummy.position.set(t.x, t.y + t.h + t.r * 0.5, t.z); dummy.rotation.set(R(), R() * 6, 0); dummy.scale.set(t.r, t.r * 1.1, t.r);
+      m.setColorAt(j, HC.setHSL(0.24 + R() * 0.06, 0.38, 0.24 + R() * 0.08));
+    });
+    layer = layerSave;
+
+    // The Rise: casa grande con dependencias y una chimenea alta detrás
+    var stone = mat(0xb9a88d, 0.95, 0, { flatShading: true }), slate = mat(0x4b4852, 0.8, 0, { flatShading: true }), brick = mat(0x8a4b3a, 0.95, 0, { flatShading: true });
+    var winM = mat(0x1d1c24, 0.4), lit = new THREE.MeshBasicMaterial({ color: 0xffcf7a });
+    box(base, 16, 7, 10, stone, 14, 3.5, -18);
+    var rf = part(base, roofGeo(16.6, 10.8, 4), slate, [14, 7, -18]); rf.receiveShadow = true;
+    [8.5, 19.5].forEach(function (x) { box(base, 1.2, 3, 1.2, brick, x, 10, -18); });
+    [-1, 1].forEach(function (f) {
+      var zf = -18 + f * 5.03;
+      [8, 11, 17, 20].forEach(function (x) { [2.2, 5].forEach(function (y) { box(base, 1.3, 1.6, 0.1, x === 20 && y === 2.2 && f > 0 ? lit : winM, x, y, zf); }); });
+      box(base, 1.6, 2.6, 0.1, DARK, 14, 1.3, zf);
+    });
+    box(base, 6, 3, 5, stone, 2, 1.5, -33); part(base, roofGeo(6.4, 5.6, 1.8), slate, [2, 3, -33]);
+    box(base, 5, 3, 6, stone, 26, 1.5, -33, Math.PI / 2); part(base, roofGeo(6.4, 5.6, 1.8), slate, [26, 3, -33], null, [0, Math.PI / 2, 0]);
+    part(base, new THREE.CylinderGeometry(0.6, 0.9, 15, 8), brick, [29.5, 7.5, -39]);
+    // La verja cerrada
+    var iron = mat(0x23232a, 0.5, 0.6);
+    [12.6, 15.4].forEach(function (x) { box(base, 0.5, 3, 0.5, stone, x, 1.5, -5); });
+    for (var b = 0; b < 9; b++) part(base, new THREE.CylinderGeometry(0.04, 0.04, 2.4, 4), iron, [12.95 + b * 0.27, 1.25, -5]);
+    box(base, 2.6, 0.1, 0.08, iron, 14, 2.3, -5); box(base, 2.6, 0.1, 0.08, iron, 14, 0.4, -5);
+
+    // La casita junto al camino, con la madre en la puerta
+    var white = mat(0xe6dcc6, 0.95, 0, { flatShading: true }), thatch = mat(0x8a6a3a, 1, 0, { flatShading: true });
+    box(base, 6, 3, 5, white, -25, 1.5, -3); part(base, roofGeo(6.6, 5.8, 2.6), thatch, [-25, 3, -3]);
+    box(base, 1.1, 2, 0.1, DARK, -25, 1, -0.47); box(base, 1, 0.9, 0.1, lit, -23, 1.7, -0.47);
+    on(base, makeHuman({ coat: 0x6d4a5a, trou: 0x4a3a40, hair: 0x6b5a4a, h: 1.66, build: 0.9 }), -25, 0.3, 0);
+
+    // Capítulo 1: Ransom en el camino, con mochila; en la puerta de atrás, Weston y Devine con el muchacho
+    var c1 = grp(1, 1), walker = makeHuman(RANSOM);
+    part(walker, new THREE.BoxGeometry(0.34, 0.44, 0.22), mat(0x5d5a3a, 0.9), [0, 1.22, -0.24]);
+    on(c1, walker, -8, roadZ(-8), Math.PI / 2 - 0.15);
+    on(c1, makeHuman({ coat: 0x8a6d4a, trou: 0x5a5048, hair: 0xb08a50, h: 1.5, build: 0.85 }), 13.9, -24.6, Math.PI);
+    var fight = grp(1, 2);
+    on(fight, makeHuman(WESTON), 13.05, -24.4, Math.PI / 2 + 0.3).rotateX(0.16);
+    on(fight, makeHuman(DEVINE), 14.75, -24.5, -Math.PI / 2 - 0.3).rotateX(0.16);
+    // Capítulo 2: ahora el que forcejea es Ransom
+    on(grp(2, 2), makeHuman(RANSOM), 13.9, -24.8, Math.PI + 0.2);
+    // Desde el 3: la esfera que escondían en el patio
+    on(grp(3), makeShip(), 13, -35, 0.6, 0.9);
+
+    // Desde el 21: el pub al otro extremo del camino, con luz en las ventanas, y lluvia
+    var pub = grp(21);
+    box(pub, 9, 4.4, 6, white, 36, 2.2, 21); part(pub, roofGeo(9.6, 6.8, 2.6), slate, [36, 4.4, 21]);
+    [32.6, 35, 38.6].forEach(function (x, j) { box(pub, j === 1 ? 1.2 : 1.6, j === 1 ? 2.2 : 1.2, 0.1, j === 1 ? DARK : lit, x, j === 1 ? 1.1 : 1.8, 17.97); });
+    box(pub, 1.6, 1.2, 0.1, lit, 34, 3.4, 17.97); box(pub, 1.6, 1.2, 0.1, lit, 38, 3.4, 17.97);
+    [33, 36, 39].forEach(function (x) { box(pub, 1.5, 1.1, 0.1, lit, x, 1.9, 24.03); });
+    box(pub, 0.1, 1, 1.4, mat(0x6b3a2a, 0.8), 40.2, 3.3, 17.6);
+    var pl = new THREE.PointLight(0xffb060, 1.4, 20); pl.position.set(36, 2.4, 15.6); pub.add(pl);
+    var rp = new Float32Array(1400 * 3);
+    for (i = 0; i < 1400; i++) rp.set([(R() - 0.5) * 90, R() * 36, (R() - 0.5) * 90], i * 3);
+    var rg = new THREE.BufferGeometry(); rg.setAttribute('position', new THREE.BufferAttribute(rp, 3));
+    var rm = new THREE.PointsMaterial({ color: 0xc4cde0, size: 0.1, transparent: true, opacity: 0.5, depthWrite: false });
+    TT.rain = new THREE.Group(); TT.rain.add(new THREE.Points(rg, rm)); var r2 = new THREE.Points(rg, rm); r2.position.y = 36; TT.rain.add(r2); pub.add(TT.rain);
+
+    // Desde el 22: una casa pequeña aparte, con una ventana encendida y alguien sentado
+    var st = grp(22);
+    box(st, 5, 3, 4, white, -34, 1.5, 30); part(st, roofGeo(5.5, 4.6, 2), slate, [-34, 3, 30]);
+    box(st, 0.1, 1.5, 1.9, lit, -31.47, 1.8, 30); box(st, 1.2, 1, 0.1, lit, -34, 1.8, 32.03);
+    var sil = mat(0x2a2220, 1);
+    part(st, SPH, sil, [-31.4, 2.1, 30.15], [0.04, 0.2, 0.17]); part(st, new THREE.BoxGeometry(0.04, 0.5, 0.75), sil, [-31.4, 1.62, 30.15]);
+    box(st, 0.06, 0.12, 1.9, sil, -31.4, 1.1, 30);
+    var sl = new THREE.PointLight(0xffb060, 0.9, 9); sl.position.set(-30, 1.8, 30); st.add(sl);
+    TT.base = base;
+  })();
+
+  /* --- Los cielos: no un vacío negro, sino un espacio lleno de luz --- */
+  var cielo = new THREE.Scene(), CC = {};
+  (function () {
+    var R = mkRng(19380305);
+    cielo.background = new THREE.Color(0x0c1030);
+    // La luz llega de un lado, así la nave queda medio en luz y medio en sombra.
+    // El resplandor se dibuja algo más cerca del centro de la vista inicial, para que se vea sin girar.
+    var SUN_P = V3(600, 170, -160), GLOW_P = V3(190, 140, -560);
+    // Estrellas muy densas y nítidas, de varios tonos, y una banda más poblada
+    var tones = [0xffffff, 0xcfe0ff, 0xa8c4ff, 0xfff0c8, 0xffd2a0, 0xffc0d0], tc2 = new THREE.Color();
+    function stars(n, size, op, band) {
+      var p = new Float32Array(n * 3), cl = new Float32Array(n * 3);
+      for (var i = 0; i < n; i++) {
+        var u = band ? (R() + R() + R() - 1.5) * 0.16 : R() * 2 - 1, a = R() * 6.283, r = Math.sqrt(1 - u * u), v = V3(r * Math.cos(a), u, r * Math.sin(a));
+        if (band) v.applyAxisAngle(V3(1, 0, 0.4).normalize(), 1.05);
+        p.set([v.x * 1500, v.y * 1500, v.z * 1500], i * 3);
+        tc2.setHex(tones[Math.floor(R() * tones.length)]).multiplyScalar(0.55 + R() * 0.45); cl.set([tc2.r, tc2.g, tc2.b], i * 3);
+      }
+      var g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3)); g.setAttribute('color', new THREE.BufferAttribute(cl, 3));
+      cielo.add(new THREE.Points(g, new THREE.PointsMaterial({ size: size, sizeAttenuation: false, vertexColors: true, transparent: true, opacity: op, depthWrite: false })));
+    }
+    stars(5200, 1.5, 0.95); stars(800, 2.8, 1); stars(5000, 1.2, 0.8, true);
+    // Velos tenues de color: el fondo no es negro
+    var veil = glowTex([[0, 'rgba(150,120,255,.5)'], [0.5, 'rgba(90,80,200,.18)'], [1, 'rgba(60,60,160,0)']]);
+    [[-900, 300, -900, 1400, 0.35], [700, -400, -1000, 1200, 0.25], [-300, -700, 800, 1300, 0.3], [400, 600, 900, 1100, 0.22]].forEach(function (v) { var s = glow(veil, v[3], v[4]); s.position.set(v[0], v[1], v[2]); cielo.add(s); });
+    // El sol: un resplandor grande y cálido, que es también la luz de la escena
+    var sun = glow(glowTex([[0, 'rgba(255,255,245,1)'], [0.12, 'rgba(255,244,200,1)'], [0.3, 'rgba(255,204,110,.55)'], [0.6, 'rgba(255,170,70,.15)'], [1, 'rgba(255,150,50,0)']]), 300);
+    sun.position.copy(GLOW_P); cielo.add(sun);
+    var haze = glow(glowTex([[0, 'rgba(255,210,120,.6)'], [0.4, 'rgba(255,190,90,.2)'], [1, 'rgba(255,180,80,0)']]), 1100, 0.6); haze.position.copy(GLOW_P); cielo.add(haze);
+    cielo.add(new THREE.AmbientLight(0x2a3060, 0.8));
+    var key = new THREE.DirectionalLight(0xffd98a, 1.9); key.position.copy(SUN_P); cielo.add(key);
+    // La nave, girando muy despacio
+    CC.ship = new THREE.Group(); var sh = makeShip(); sh.position.y = -4.1; CC.ship.add(sh); CC.ship.rotation.set(0.3, 0, 0.15); cielo.add(gate(CC.ship, 3));
+    // La Tierra: azul y blanca, con una textura sencilla hecha a mano
+    var cv = document.createElement('canvas'); cv.width = 256; cv.height = 128; var cx = cv.getContext('2d'), im = cx.createImageData(256, 128);
+    for (var y = 0; y < 128; y++) for (var x = 0; x < 256; x++) {
+      var lon = x / 256 * 6.283, lat = (y / 127 - 0.5) * Math.PI, qx = Math.cos(lon) * 1.7, qz = Math.sin(lon) * 1.7;
+      // Ruido sobre la esfera (suma de tres planos), para que los continentes no salgan estirados
+      var X = Math.cos(lat) * Math.cos(lon) * 2.4, Y = Math.sin(lat) * 2.4, Z = Math.cos(lat) * Math.sin(lon) * 2.4;
+      var land = (fbm(X + 4, Y + 9) + fbm(Y + 13, Z + 2) + fbm(Z + 7, X + 21)) / 3;
+      var cloud = (fbm(X * 1.8 + 30, Y * 1.8 + 5) + fbm(Y * 1.8 + 3, Z * 1.8 + 40) + fbm(Z * 1.8 + 17, X * 1.8 + 11)) / 3;
+      var r = 34, gg = 92, bb = 176;
+      if (land > 0.52) { var t = sstep(0.52, 0.6, land); r = lerp(64, 120, t * 0.5); gg = lerp(118, 126, t); bb = lerp(64, 74, t); }
+      var cw = sstep(0.5, 0.6, cloud) * 0.92 + sstep(0.8, 0.95, Math.abs(lat) / 1.5708);
+      cw = Math.min(1, cw);
+      var o = (y * 256 + x) * 4; im.data[o] = lerp(r, 245, cw); im.data[o + 1] = lerp(gg, 248, cw); im.data[o + 2] = lerp(bb, 255, cw); im.data[o + 3] = 255;
+    }
+    cx.putImageData(im, 0, 0);
+    var et = new THREE.CanvasTexture(cv);
+    CC.earth = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), new THREE.MeshStandardMaterial({ map: et, roughness: 0.75, emissive: 0x0a1a38 }));
+    CC.earth.rotation.z = 0.4; cielo.add(gate(CC.earth, 3));
+    CC.atmo = glow(glowTex([[0, 'rgba(120,170,255,0)'], [0.72, 'rgba(120,170,255,0)'], [0.77, 'rgba(140,190,255,.6)'], [0.86, 'rgba(110,160,255,.15)'], [1, 'rgba(90,140,255,0)']]), 1); cielo.add(gate(CC.atmo, 3));
+    // Malacandra: un disco ocre rojizo sin detalle
+    CC.mars = new THREE.Mesh(new THREE.SphereGeometry(1, 40, 28), new THREE.MeshStandardMaterial({ color: 0xc8693f, roughness: 1, emissive: 0x2a0e06 }));
+    cielo.add(gate(CC.mars, 5));
+    CC.marsGlow = glow(glowTex([[0, 'rgba(255,170,120,.9)'], [0.25, 'rgba(255,140,90,.35)'], [1, 'rgba(255,120,80,0)']]), 1); cielo.add(gate(CC.marsGlow, 5));
+    // La Luna, solo en el regreso
+    CC.moon = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 22), new THREE.MeshStandardMaterial({ color: 0xa6a4a8, roughness: 1 }));
+    cielo.add(gate(CC.moon, 21, 21));
+  })();
+  // Tamaño y distancia de la Tierra, Malacandra y la Luna según el capítulo: [x, y, z, radio]
+  var SKY_AT = {
+    3: { earth: [-58, -20, -95, 42] },
+    4: { earth: [-95, -10, -220, 22] },
+    5: { earth: [-140, -4, -380, 7], mars: [150, 15, -440, 3] },
+    6: { earth: [-140, -4, -380, 7], mars: [52, -22, -105, 30] },
+    21: { earth: [-60, -16, -120, 34], mars: [170, 20, -480, 3.5], moon: [-28, -6, -60, 5] }
+  };
+  function skyNowAt() { return SKY_AT[CH <= 3 ? 3 : CH <= 6 ? CH : CH <= 20 ? 6 : 21]; }
+  function bodyPos(k) { var a = skyNowAt()[k]; return a ? V3(a[0], a[1], a[2]) : V3(0, 0, -400); }
+  function bodyR(k) { var a = skyNowAt()[k]; return a ? a[3] : 1; }
+  function layoutSky() {
+    var L = skyNowAt();
+    [['earth', CC.earth], ['mars', CC.mars], ['moon', CC.moon]].forEach(function (b) {
+      var a = L[b[0]]; if (!a) return;
+      b[1].position.set(a[0], a[1], a[2]); b[1].scale.setScalar(a[3]);
+    });
+    CC.atmo.position.copy(CC.earth.position); CC.atmo.scale.setScalar(CC.earth.scale.x * 2.6);
+    if (CC.mars.scale.x < 5) CC.mars.visible = false;   // de lejos, Malacandra es solo un punto de luz
+    CC.marsGlow.position.copy(CC.mars.position); CC.marsGlow.scale.setScalar(Math.max(CC.mars.scale.x * 3, 26));
+  }
+  // Vista que mira un cuerpo desde el lado de la nave, algo corrida hacia el sol para verlo iluminado
+  var SUN_DIR = V3(600, 170, -160).normalize();
+  function bodyView(k, f) { var p = bodyPos(k), r = bodyR(k), d = p.clone().negate().normalize().addScaledVector(SUN_DIR, 0.9).normalize(); return { p: p, lift: r * 1.08, cam: p.clone().addScaledVector(d, r * f).add(V3(0, r * 0.35, 0)) }; }
 
   /* ---------- Cámara, controles y etiquetas ---------- */
   var camera = new THREE.PerspectiveCamera(45, 1, 0.3, 2400);
@@ -706,7 +1845,6 @@
   controls.enableDamping = true; controls.dampingFactor = 0.08; controls.screenSpacePanning = false;
 
   function viewPos(t, v) { var el = v.el * D2R, az = v.az * D2R; return new THREE.Vector3(t.x + v.d * Math.sin(az) * Math.cos(el), t.y + v.d * Math.sin(el), t.z + v.d * Math.cos(az) * Math.cos(el)); }
-  var V3 = function (x, y, z) { return new THREE.Vector3(x, y, z); };
   var rose0 = roseSites[0] || { x: -70, z: -60, y: 16 };
   var forestP = { x: westX(27, 8), z: 27 };
   var SPOT = {
@@ -721,10 +1859,35 @@
     rebano: FV.rebano,
     torre: { p: V3(caveX - 3, caveY + 3.5, AZ), lift: 6.5, v: { d: 32, az: -112, el: 10 } },
     thulcandra: { p: THUL, lift: 0, star: true },
-    meldilorn: { p: V3(HALF - 3, gy(HALF - 3, AZ + 18) + 1, AZ + 18), lift: 5, v: { d: 70, az: -100, el: 14 } }
+    meldilorn: { p: V3(HALF - 3, gy(HALF - 3, AZ + 18) + 1, AZ + 18), lift: 5, v: { d: 70, az: -100, el: 14 } },
+    cruce: E.vCruce,
+    cuevas: E.vCuevas,
+    monolitos: { p: V3(AV0 + 4.8, gy(AV0 + 4.8, 0) + 2.5, 0), lift: 4.5, v: { d: 26, az: -122, el: 16 }, near: true },
+    kanaka: { p: V3(KX + 2, gy(KX + 2, KZ) + 1.2, KZ), lift: 3.2, v: { d: 14, az: -160, el: 18 }, near: true },
+    oyarsa: { p: V3(OYX - 3, gy(OYX - 3, 0) + 2.5, 0), lift: 8.5, v: { d: 30, az: -112, el: 34 }, near: true },
+    // Inglaterra
+    camino: TT.views.camino, casita: TT.views.casita, rise: TT.views.rise, pub: TT.views.pub, estudio: TT.views.estudio,
+    // Los cielos: algunos cuerpos cambian de sitio con el capítulo
+    esfera: { p: V3(0, 0, 0), lift: 6.2, v: { d: 20, az: 30, el: 14 } },
+    disco: function () { return bodyView('earth', 3.1); },
+    // Desde el lado del sol: la nave entera bañada en luz, con el cielo lleno detrás
+    cielos: function () { return { p: V3(10, 44, -150), lift: 0, cam: V3(17, 5, -2), t: V3(0, 0, 0) }; },
+    destino: function () { return CH < 6 ? { p: bodyPos('mars'), lift: 10, cam: V3(-12, 3, 18), t: bodyPos('mars') } : bodyView('mars', 3.1); }
   };
-  var HOME = { world: { t: V3(0, 6, -8), v: { d: 235, az: -45, el: 28 } }, gal: { t: V3(1, 2.5, 0) } };
-  function galHome() { var d = Math.min(52, Math.max(19.5, 12.6 / (Math.tan(22.5 * D2R) * camera.aspect))); return V3(1, 3.6, d); }
+  // Algunos lugares cambian de sitio con el capítulo: Meldilorn pasa del borde del mapa a la cuenca
+  var SPOT_LATE = { meldilorn: { from: 16, s: { p: V3(MX, 6, MZ), lift: 36, v: { d: 125, az: -78, el: 24 } } } };
+  function spotOf(id) { var a = SPOT_LATE[id], s = a && CH >= a.from ? a.s : SPOT[id]; return typeof s === 'function' ? s() : s; }
+  var HOME = { world: { t: V3(0, 6, -8), v: { d: 235, az: -45, el: 28 } }, gal: { t: V3(1, 2.5, 0) },
+    tierra: { t: V3(2, 0, -8), v: { d: 108, az: 22, el: 27 } }, cielo: { t: V3(-6, 0, -20), v: { d: 58, az: 0, el: 6 } } };
+  // En pantallas estrechas las escenas pequeñas se miran desde más lejos
+  function homeSmall(h) { var k = Math.min(1.9, Math.max(1, 1.45 / Math.max(camera.aspect, 0.5))); return { t: h.t, v: { d: h.v.d * k, az: h.v.az, el: h.v.el } }; }
+  // Con el bloque este, la vista general encuadra los dos bloques; en pantallas altas se aleja un poco más
+  function homeWorld() {
+    if (CH < 16) return HOME.world;
+    var hf = Math.atan(Math.tan(22.5 * D2R) * camera.aspect);
+    return { t: V3(EAST / 2, 0, 10), v: { d: Math.min(720, Math.max(420, 268 / Math.tan(hf))), az: -8, el: 36 } };
+  }
+  function galHome() { var hw = CH >= 18 ? 13.9 : 12.6, cx = CH >= 18 ? 1.9 : 1; var d = Math.min(56, Math.max(19.5, hw / (Math.tan(22.5 * D2R) * camera.aspect))); return V3(cx, 3.6, d); }
 
   var labels = [];
   function addLabel(m, id, text, pos, locked) {
@@ -732,9 +1895,66 @@
     b.addEventListener('click', function () { select(id); });
     labelsEl.appendChild(b); labels.push({ el: b, mode: m, id: id, pos: pos });
   }
-  PLACES.forEach(function (pl) { var s = SPOT[pl.id]; addLabel('world', pl.id, pl.name, s.p.clone().setY(s.p.y + s.lift), pl.locked); });
-  FOLK.forEach(function (f) { var g = figs[f.id]; addLabel('gal', f.id, f.id === 'pfifl' ? 'Pfifltriggi ?' : f.name, V3(g.x, g.h + 0.3 + (f.id === 'wd' ? 0.75 : 0), 0), f.locked); });
+  // Una etiqueta por ítem; applyChapter actualiza su texto y la oculta si el ítem aún no existe
+  PLACES.forEach(function (pl) {
+    var s = spotOf(pl.id); addLabel('world', pl.id, '', s.p.clone().setY(s.p.y + s.lift));
+    var L = labels[labels.length - 1]; L.scene = pl.scene || 'mal'; if (s.near) L.near = true;
+  });
+  FOLK.forEach(function (f) { var g = figs[f.id]; addLabel('gal', f.id, '', V3(g.x, g.h + 0.3 + (f.id === 'wd' ? 0.75 : 0), 0)); });
   for (var ti = 1; ti <= 6; ti++) { var te = document.createElement('div'); te.className = 'tick'; te.textContent = ti + ' m'; te.hidden = true; labelsEl.appendChild(te); labels.push({ el: te, mode: 'gal', tick: true, pos: V3(RULER_X - 0.12, ti, 0) }); }
+
+  /* --- Ransom está aquí ---
+     HERE: capítulo -> clave de escena. HERE_AT: clave -> { scene, place, p }.
+     scene es la escena de "El mundo" donde va el marcador; place es el lugar del panel. */
+  var HERE = { 1: 'camino', 2: 'rise', 3: 'esfera', 4: 'esfera', 5: 'esfera', 6: 'esfera', 21: 'esfera', 22: 'pub', 7: 'nave', 8: 'rebano', 9: 'orilla', 10: 'aldea', 11: 'aldea', 12: 'aldea', 13: 'caza', 14: 'torre', 15: 'torre', 16: 'cruce', 17: 'kanaka', 18: 'oyarsa', 19: 'oyarsa', 20: 'oyarsa' };
+  function atGround(x, z, h) { return V3(x, gy(x, z) + h, z); }
+  var HERE_AT = {
+    camino: { scene: 'tierra', place: 'camino', p: V3(-8, TT.h(-8, TT.roadZ(-8)) + 3.4, TT.roadZ(-8)) },
+    rise: { scene: 'tierra', place: 'rise', p: V3(13.9, 3.4, -24.8) },
+    esfera: { scene: 'cielo', place: 'esfera', p: V3(0, 7.4, 0) },
+    pub: { scene: 'tierra', place: 'pub', p: V3(36, 6, 15.4) },
+    nave: { scene: 'mal', place: 'nave', p: atGround(westX(SHIP_Z + 6, 1.2), SHIP_Z + 6, 4.6) },
+    rebano: { scene: 'mal', place: 'rebano', p: atGround(westX(HERD_Z + 3, 3), HERD_Z + 3, 4.6) },
+    orilla: { scene: 'mal', place: 'handramit', p: atGround(eastX(VZ - 1.9, 3.4), VZ - 1.9, 4.4) },
+    aldea: { scene: 'mal', place: 'aldea', p: atGround(eastX(VZ - 1.9, 3.4), VZ - 1.9, 4.4) },
+    caza: { scene: 'mal', place: 'hnakra', p: V3(lakeX + 7.5, 4.6, LAKE_Z + 7) },
+    torre: { scene: 'mal', place: 'torre', p: V3(caveX - 5.6, caveY + 4.4, AZ + 0.4) },
+    cruce: { scene: 'mal', place: 'cruce', p: V3(E.cruceR.x, E.cruceR.y + 3.4, E.cruceR.z) },
+    kanaka: { scene: 'mal', place: 'kanaka', p: E.kanakaR.clone().setY(E.kanakaR.y + 4.4) },
+    oyarsa: { scene: 'mal', place: 'oyarsa', p: E.oyR.clone().setY(E.oyR.y + 4.4) }
+  };
+  var SC3 = { mal: world, tierra: tierra, cielo: cielo };
+  var marker = new THREE.Mesh(new THREE.OctahedronGeometry(0.42, 0), new THREE.MeshBasicMaterial({ color: 0xe6b655, fog: false }));
+  marker.scale.set(1, 1.5, 1); marker.visible = false; world.add(marker);
+  var hereEl = document.createElement('div'); hereEl.className = 'here'; hereEl.textContent = 'Ransom está aquí'; hereEl.hidden = true; labelsEl.appendChild(hereEl);
+  var hereLab = { el: hereEl, mode: 'world', here: true, pos: V3(0, 0, 0) };
+  labels.push(hereLab);
+
+  function applyChapter() {
+    GATES.forEach(function (g) { g.o.visible = CH >= g.from && (g.to === undefined || CH <= g.to); });
+    var both = CH >= 16;
+    sunFor(both);
+    world.fog.near = both ? 700 : 320; world.fog.far = both ? 1800 : 1100;
+    limits();
+    layoutSky();
+    var night = CH >= 21;   // de vuelta en Inglaterra ya es de noche
+    TT.skyMat.color.setRGB(night ? 0.5 : 1, night ? 0.53 : 1, night ? 0.66 : 1);
+    tierra.fog.color.setHex(night ? 0x4a4c5c : 0x9a93a2);
+    TT.sun.intensity = night ? 0.25 : 0.85; TT.hemi.intensity = night ? 0.4 : 0.62;
+    labels.forEach(function (L) {
+      if (!L.id) return;
+      var v = ver(findIn(L.mode === 'world' ? PLACES : FOLK, L.id));
+      L.off = !v || (L.mode === 'gal' && !figs[L.id].obj.visible);
+      if (v) { L.el.textContent = L.id === 'pfifl' && CH < 17 ? 'Pfifltriggi ?' : v.name; L.el.classList.toggle('locked', !!v.locked); }
+      if (L.mode === 'world') { var s = spotOf(L.id); L.pos.copy(s.p).setY(s.p.y + s.lift); }
+      L.el.setAttribute('aria-pressed', sel[L.mode] === L.id ? 'true' : 'false');
+      L.occ = false;
+    });
+    var h = HERE_AT[HERE[CH]] || null;
+    marker.visible = !!h;
+    hereLab.off = !h; hereLab.scene = h ? h.scene : null;
+    if (h) { SC3[h.scene].add(marker); marker.position.copy(h.p); hereLab.pos.copy(h.p); hereLab.pos.y -= 0.75; }
+  }
 
   var fly = null;
   function flyTo(p, t, dur) {
@@ -745,31 +1965,45 @@
   canvas.addEventListener('pointerdown', function () { if (fly) { fly = null; controls.enabled = true; } });
   canvas.addEventListener('wheel', function () { if (fly) { fly = null; controls.enabled = true; } }, { passive: true });
 
+  function camKey() { return mode === 'world' ? scn : 'gal'; }
   function limits() {
-    if (mode === 'world') { controls.minDistance = 6; controls.maxDistance = 360; controls.maxPolarAngle = 1.52; }
+    var k = camKey();
+    if (k === 'mal') { controls.minDistance = 6; controls.maxDistance = CH >= 16 ? 760 : 360; controls.maxPolarAngle = 1.52; }
+    else if (k === 'tierra') { controls.minDistance = 4; controls.maxDistance = 190; controls.maxPolarAngle = 1.5; }
+    else if (k === 'cielo') { controls.minDistance = 6; controls.maxDistance = 900; controls.maxPolarAngle = Math.PI; }
     else { controls.minDistance = 2; controls.maxDistance = 70; controls.maxPolarAngle = 1.56; }
   }
   function goHome(animated) {
-    var t, p;
-    if (mode === 'world') { t = HOME.world.t.clone(); p = viewPos(t, HOME.world.v); } else { t = HOME.gal.t.clone(); p = galHome(); }
+    var t, p, k = camKey();
+    if (k === 'gal') { t = HOME.gal.t.clone(); p = galHome(); }
+    else { var hw = k === 'mal' ? homeWorld() : homeSmall(HOME[k]); t = hw.t.clone(); p = viewPos(t, hw.v); }
     if (animated) flyTo(p, t); else { camera.position.copy(p); controls.target.copy(t); controls.update(); }
   }
-  var saved = { world: null, gal: null };
+  // Cada escena guarda su propia cámara
+  var saved = {};
+  function restoreCam() { var sv = saved[camKey()]; limits(); if (sv) { camera.position.copy(sv.p); controls.target.copy(sv.t); controls.update(); } else goHome(false); }
   setModeHook = function (m) {
     fly = null; controls.enabled = true;
-    saved[mode] = { p: camera.position.clone(), t: controls.target.clone() };
-    mode = m; limits();
-    if (saved[m]) { camera.position.copy(saved[m].p); controls.target.copy(saved[m].t); controls.update(); } else goHome(false);
+    saved[camKey()] = { p: camera.position.clone(), t: controls.target.clone() };
+    mode = m; restoreCam();
+  };
+  sceneHook = function (prev) {
+    if (mode !== 'world') return;
+    fly = null; controls.enabled = true;
+    saved[prev] = { p: camera.position.clone(), t: controls.target.clone() };
+    restoreCam();
   };
   onSelect = function (id) {
     labels.forEach(function (L) { if (L.id && L.mode === mode) L.el.setAttribute('aria-pressed', L.id === id ? 'true' : 'false'); });
     if (!id) { goHome(true); return; }
     if (mode === 'world') {
-      var s = SPOT[id];
+      var s = spotOf(id);
       if (s.star) { var t0 = V3(0, 10, 0); flyTo(viewPos(t0, { d: 300, az: -45, el: 12 }), t0, 1800); }
+      else if (s.cam) flyTo(s.cam.clone(), (s.t || s.p).clone(), 1600);
       else flyTo(viewPos(s.p, s.v), s.p.clone());
     } else {
-      var g = figs[id], d = Math.max(g.fh * 2.1, 4.6); if (camera.aspect < 1) d /= Math.max(camera.aspect, 0.6);
+      var g = figs[id]; if (!g.obj.visible) return;
+      var d = Math.max(g.fh * 2.1, 4.6); if (camera.aspect < 1) d /= Math.max(camera.aspect, 0.6);
       var t = V3(g.x, g.h * 0.55, 0); flyTo(V3(t.x + d * 0.3, t.y + d * 0.14, d), t, 1100);
     }
   };
@@ -788,7 +2022,7 @@
     var c = camera.position;
     for (var i = 2; i <= 14; i++) {
       var t = i / 16, x = lerp(c.x, P.x, t), z = lerp(c.z, P.z, t);
-      if (Math.abs(x) < HALF && Math.abs(z) < HALF && terr(x, z).y > lerp(c.y, P.y, t) + 0.6) return true;
+      if (x > -HALF && x < (CH >= 16 ? 3 * HALF : HALF) && Math.abs(z) < HALF && terr(x, z).y > lerp(c.y, P.y, t) + 0.6) return true;
     }
     return false;
   }
@@ -796,15 +2030,20 @@
     var recheck = (tickN++ % 8) === 0;
     for (var i = 0; i < labels.length; i++) {
       var L = labels[i];
-      if (L.mode !== mode) { L.el.hidden = true; continue; }
+      if (L.mode !== mode || L.off || (L.mode === 'world' && L.scene !== scn)) { L.el.hidden = true; continue; }
       if (L.id === 'thulcandra') { if (skyT < 0.4) { L.el.hidden = true; continue; } }
-      else if (L.mode === 'world') { if (recheck) L.occ = occluded(L.pos); if (L.occ && sel.world !== L.id) { L.el.hidden = true; continue; } }
+      else if (L.mode === 'world') {
+        // Los lugares pequeños dentro de Meldilorn solo se rotulan de cerca, para no amontonar etiquetas
+        if (L.near && sel.world !== L.id && camera.position.distanceTo(L.pos) > 150) { L.el.hidden = true; continue; }
+        if (recheck) L.occ = scn === 'mal' && occluded(L.pos); if (L.occ && sel.world !== L.id) { L.el.hidden = true; continue; } }
       pv.copy(L.pos).project(camera);
       if (pv.z > 1 || pv.z < -1 || Math.abs(pv.x) > 1.02 || Math.abs(pv.y) > 1.02) { L.el.hidden = true; continue; }
       var x = (pv.x * 0.5 + 0.5) * W, y = (-pv.y * 0.5 + 0.5) * H;
       if (y < 96 && x < 330) { L.el.hidden = true; continue; }
       L.el.hidden = false;
-      L.el.style.transform = L.tick ? 'translate(-100%,-50%) translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)' : 'translate(-50%,-100%) translate(' + x.toFixed(1) + 'px,' + (y - 9).toFixed(1) + 'px)';
+      L.el.style.transform = L.tick ? 'translate(-100%,-50%) translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)'
+        : L.here ? 'translate(-50%,0) translate(' + x.toFixed(1) + 'px,' + (y + 3).toFixed(1) + 'px)'
+        : 'translate(-50%,-100%) translate(' + x.toFixed(1) + 'px,' + (y - 9).toFixed(1) + 'px)';
     }
   }
   var last = performance.now();
@@ -823,10 +2062,16 @@
       for (var i = 0; i < eldilMats.length; i++) eldilMats[i].opacity = eldilMats[i].userData.base * (0.55 + 0.45 * Math.abs(Math.sin(tsec * (1.3 + i * 0.37) + i)));
       for (var id in figs) { var f = figs[id]; if (mode === 'gal' && sel.gal === id && id !== 'wd') f.obj.rotation.y += dt * 0.35; else f.obj.rotation.y += (f.ry - f.obj.rotation.y) * Math.min(1, dt * 4); }
       if (figs.eldil.obj.userData.spin) figs.eldil.obj.userData.spin.rotation.y = tsec * 0.8;
+      if (figs.oyarsa.obj.userData.spin) figs.oyarsa.obj.userData.spin.rotation.y = tsec * 0.5;
+      if (marker.visible) { marker.rotation.y = tsec * 1.2; marker.position.y = HERE_AT[HERE[CH]].p.y + 0.25 * Math.sin(tsec * 2); }
+      if (mode === 'world' && scn === 'cielo') { CC.ship.rotation.y += dt * 0.06; CC.earth.rotation.y += dt * 0.02; }
+      if (mode === 'world' && scn === 'tierra' && CH >= 21) TT.rain.position.y = -((tsec * 20) % 36);
     }
-    if (mode === 'world') {
+    if (mode === 'world' && scn !== 'mal') renderer.render(scn === 'tierra' ? tierra : cielo, camera);
+    else if (mode === 'world') {
       var y = camera.position.y;
-      skyT = 0.55 * sstep(8, 30, y) + 0.45 * sstep(30, 92, y);
+      // Sin capítulo elegido no se muestra nada: cielo oscuro con estrellas
+      skyT = CH < 7 ? 1 : 0.55 * sstep(8, 30, y) + 0.45 * sstep(30, 92, y);
       skyNow.copy(skyLow).lerp(skyHigh, skyT);
       world.background.copy(skyNow); world.fog.color.copy(skyNow);
       starMat.opacity = skyT; thulMat.opacity = Math.min(1, skyT * 1.3);
@@ -834,7 +2079,8 @@
     } else renderer.render(gal, camera);
     updateLabels();
   }
+  chapterHook = function (lost) { applyChapter(); if (lost) onSelect(null); };
+  applyChapter();
   requestAnimationFrame(frame);
-  window.__atlas = { select: select, setMode: setMode };
 })();
 </script>

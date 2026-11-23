@@ -2,13 +2,14 @@
 
 Escena 3D interactiva del mundo y los habitantes de *Más allá del planeta silencioso*, el primer libro de la Trilogía Cósmica de C. S. Lewis.
 
-Se construye de a poco, al ritmo de la lectura. **Hoy cubre hasta el capítulo 15** y no adelanta nada de lo que viene después.
+**Tú eliges en qué capítulo vas** (1 a 22) y el atlas muestra solo lo que Ransom sabe en ese punto. Al avanzar, el mapa crece, aparecen lugares y criaturas, y las fichas cambian de nombre y de texto. Avanzar más allá de lo leído pide confirmación, para no arruinarte el libro.
 
 ## Qué hay
 
-- **El mundo**: el harandra (meseta fría, casi sin aire) cortado por un handramit (cañón con agua tibia, bosque púrpura y vida). Incluye la nave y la cabaña, la aldea de los hrossa, la caza del hnakra, el rebaño de los sorns y la torre de Augray con su camino. El cielo se oscurece al subir la cámara.
-- **Los habitantes**: hross, sorn, eldil, hnakra, Ransom, Weston y Devine, en fila y a escala real con una regla en metros. Los pfifltriggi son solo una silueta porque el lector aún no los ha visto.
-- Cada lugar y cada criatura tiene una ficha con su descripción y los capítulos donde aparece.
+- **Selector de capítulo**, recordado en el navegador. Un punto dorado marca lo nuevo de cada capítulo y un marcador indica dónde está Ransom.
+- **El mundo**, en varias escenas que se desbloquean con la lectura. Cada lugar tiene una ficha con su descripción y sus capítulos.
+- **Los habitantes**, en fila y a escala real con una regla en metros. Lo que el lector aún no ha visto aparece como silueta o no aparece.
+- Aviso: el código fuente contiene todo el libro. Si no quieres spoilers, usa la página y no leas `malacandra.html`.
 
 ## Cómo está hecho
 
